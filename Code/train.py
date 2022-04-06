@@ -301,7 +301,7 @@ def train_active_learning(patch_dir, path_CD, test_path, num_iterations, metrics
         X_check = np.concatenate((X_train_highlighted, X_test_highlighted))
         file_names_check = np.concatenate((file_names_train, file_names_test))
         # reconstruct segmented image by patches
-        reconstructed_images = reconstructor_AL.reconstruct(X_check, file_names_check)
+        reconstructor_AL.reconstruct(X_check, file_names_check, iteration)
 
 
         # Get most uncertain values from test and add them into the train

@@ -1,8 +1,8 @@
-import numpy as np
 import matplotlib.pyplot as plt
-import cv2
+from pathlib import Path
+from utility import *
 
-def reconstruct(clustered_images, file_names):
+def reconstruct(clustered_images, file_names, iterationAL):
     # create a numpy array which will contain ordered patches
     # since we discarded some black patches we initialize this array with full zeros (black)
     # originally we had 19*19 = 361 patches (32x32 size) per image, and we have 16 images in train so:
@@ -36,6 +36,10 @@ def reconstruct(clustered_images, file_names):
                 toAttachV = np.vstack((toAttachV, toAttachH))
         final_images[iteration] = toAttachV
 
+    for i in range(len(final_images)):
+        Path(f'PatchesAL/image_{i}').mkdir(parents=True, exist_ok=True)
+        savePath = f"PatchesAL/image_{str(i)}/image_iteration_{str(iterationAL)}.jpg"
+        createAndSaveImage(final_images[i], savePath)
 
     # for image in final_images:
     plt.imshow(final_images[0])
