@@ -2,17 +2,9 @@ import numpy as np
 import imageio as io
 import tensorflow as tf
 import os
+import nibabel as nib
 from keras import backend as K
 
-
-def createAndSaveImage(image_to_save, output_name):
-    io.imwrite(output_name, image_to_save)
-    return True
-
-def applyMask(input, mask):
-    masked = input
-    masked[np.where(mask == 0)] = 0
-    return masked
 
 def convert_to_float(image, label):
     image = tf.image.convert_image_dtype(image, dtype=tf.float32)
@@ -41,13 +33,13 @@ def get_dataset_partitions_tf(ds, ds_size, train_split=0.8, val_split=0.1, test_
 
     return train_ds, val_ds, test_ds
 
-def getAllFiles(dir, result = None):
+def get_all_files(dir, result = None):
     if result is None:
         result = []
     for entry in os.listdir(dir):
         entrypath = os.path.join(dir, entry)
         if os.path.isdir(entrypath):
-            getAllFiles(entrypath ,result)
+            get_all_files(entrypath ,result)
         else:
             result.append(entrypath)
     result = sorted(result)
