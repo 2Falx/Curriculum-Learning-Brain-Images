@@ -271,16 +271,16 @@ def train_active_learning(patch_dir, path_CD, test_path, num_iterations, metrics
         count_uncertain_values = 50
 
         if metrics == "least_confidence":
-            most_uncertain_indeces = np.argsort(np.abs(y_pred - 0.5), axis=0)
-            most_uncertain_indeces = most_uncertain_indeces[:count_uncertain_values].flatten()
+            most_uncertain_indices = np.argsort(np.abs(model.predict(X_test) - 0.5), axis=0)
+            most_uncertain_indices = most_uncertain_indices[:count_uncertain_values].flatten()
 
         elif metrics == "entropy":
-            entropy_y = np.transpose(entropy(np.transpose(y_pred)))
-            most_uncertain_indeces = np.argpartition(-entropy_y, count_uncertain_values - 1, axis=0)[
+            entropy_y = np.transpose(entropy(np.transpose(model.predict(X_test))))
+            most_uncertain_indices = np.argpartition(-entropy_y, count_uncertain_values - 1, axis=0)[
                                      :count_uncertain_values]
 
         print(f"X_train.shape: {X_train.shape}")
-        print(f"X_test[most_uncertain_indeces, :, :, :].shape: {X_test[most_uncertain_indeces, :, :, :].shape}")
+        print(f"X_test[most_uncertain_indices, :, :, :].shape: {X_test[most_uncertain_indices, :, :, :].shape}")
 
         # Reconstruct images from patches, highlighting patches selected by active learning and patches of actual train
         # take highlighted elements to show uncertain patches
@@ -292,7 +292,7 @@ def train_active_learning(patch_dir, path_CD, test_path, num_iterations, metrics
             X_train_highlighted[i, :, 0, 1] = 255
             X_train_highlighted[i, :, len(X_train_highlighted[i]) - 1, 1] = 255
 
-        for i in most_uncertain_indeces:
+        for i in most_uncertain_indices:
             X_test_highlighted[i,0,:,2] = 255  # blue squares for AL patches
             X_test_highlighted[i, len(X_test_highlighted[i])-1, :, 2] = 255
             X_test_highlighted[i, :, 0, 2] = 255
@@ -305,14 +305,14 @@ def train_active_learning(patch_dir, path_CD, test_path, num_iterations, metrics
 
 
         # Get most uncertain values from test and add them into the train
-        X_train = np.vstack((X_train, X_test[most_uncertain_indeces, :, :, :]))
-        y_train = np.vstack((y_train, y_test[most_uncertain_indeces, :]))
-        file_names_train = np.concatenate((file_names_train, file_names_test[most_uncertain_indeces]))
+        X_train = np.vstack((X_train, X_test[most_uncertain_indices, :, :, :]))
+        y_train = np.vstack((y_train, y_test[most_uncertain_indices, :]))
+        file_names_train = np.concatenate((file_names_train, file_names_test[most_uncertain_indices]))
 
         # remove most uncertain values from test
-        X_test = np.delete(X_test, most_uncertain_indeces, axis=0)
-        y_test = np.delete(y_test, most_uncertain_indeces, axis=0)
-        file_names_test = np.delete(file_names_test, most_uncertain_indeces, axis=0)
+        X_test = np.delete(X_test, most_uncertain_indices, axis=0)
+        y_test = np.delete(y_test, most_uncertain_indices, axis=0)
+        file_names_test = np.delete(file_names_test, most_uncertain_indices, axis=0)
 
         # Then I compile again and train again the model
         model.compile(optimizer="SGD",
