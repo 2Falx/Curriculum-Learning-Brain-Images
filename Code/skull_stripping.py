@@ -28,11 +28,11 @@ def main(original_data_dir, target_dir):
         label_mat = apply_mask(label_mat, mask_mat)
         print(j.split(os.sep)[-1].split('_')[0])
         # save to new file as masked version of original data -> skull stripped brain and vessel labels
-        create_and_save_nifti(img_mat, target_dir + j.split(os.sep)[-1].split('_')[0] + '_img.nii')
-        create_and_save_nifti(label_mat, target_dir + j.split(os.sep)[-1].split('_')[0] + '_label.nii')
+        create_and_save_nifti(img_mat, target_dir + j.split('/')[2].split('_')[0] + '_img.nii')
+        create_and_save_nifti(label_mat, target_dir + j.split('/')[2].split('_')[0] + '_label.nii')
 
     print('DONE')
 
 
 if __name__ == '__main__':
-    main("images", "skull_stripped_images/")
+    main("images/original_images/", "images/skull_stripped_images/")
