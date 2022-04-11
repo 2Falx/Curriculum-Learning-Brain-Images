@@ -1,8 +1,9 @@
 """
 This file contains functions useful for the images' preprocessing step
 """
-import numpy as np
 import os
+import numpy as np
+import imageio as io
 import nibabel as nib
 
 
@@ -56,3 +57,13 @@ def get_all_files(directory, files_list=None):
             files_list.append(entry_path)
     files_list = sorted(files_list)
     return files_list
+
+
+def create_and_save_image(image, path_target):
+    """
+    Creates a jpg image from numpy array and saves it to given path.
+    :param image: Numpy array.
+    :param path_target: String, path where to store the created jpg.
+    """
+    io.imwrite(path_target, image)
+
