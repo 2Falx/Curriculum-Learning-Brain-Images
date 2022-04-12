@@ -54,8 +54,8 @@ def main(patch_size):
                     img_with_grid[patch_start_x, patch_start_y: patch_end_y] = 255
                     img_with_grid[patch_end_x, patch_start_y: patch_end_y] = 255
                     # Get the patch to be saved and its pixel-level label
-                    current_patch = np.array(img_mat[patch_start_x: patch_end_x, patch_start_y:patch_end_y, current_slice]).astype(np.uint8)
-                    current_patch_label = np.array(label_mat[patch_start_x: patch_end_x, patch_start_y:patch_end_y, current_slice]).astype(np.uint8)
+                    current_patch = np.array(img_mat[patch_start_x: patch_end_x + 1, patch_start_y:patch_end_y + 1, current_slice]).astype(np.uint8)
+                    current_patch_label = np.array(label_mat[patch_start_x: patch_end_x + 1, patch_start_y:patch_end_y + 1, current_slice]).astype(np.uint8)
 
                     # Save with different names patches which contain vessels from those which don't
                     if 255 in current_patch_label:
