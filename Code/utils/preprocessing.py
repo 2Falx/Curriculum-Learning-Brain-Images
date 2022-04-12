@@ -15,7 +15,7 @@ def load_nifti_mat_from_file(path_orig):
     """
     nifti_orig = nib.load(path_orig)
     print(' - nifti loaded from:', path_orig)
-    return nifti_orig.get_data()  # transform the images into np.ndarrays
+    return nifti_orig.get_fdata()  # transform the images into np.ndarrays - float64
 
 
 def create_and_save_nifti(mat, path_target):
@@ -61,9 +61,18 @@ def get_all_files(directory, files_list=None):
 
 def create_and_save_image(image, path_target):
     """
-    Creates a jpg image from numpy array and saves it to given path.
+    Create a jpg image from numpy array and saves it to given path.
     :param image: Numpy array.
     :param path_target: String, path where to store the created jpg.
     """
     io.imwrite(path_target, image)
+
+
+def create_and_save_image_as_ndarray(image, path_target):
+    """
+    Save a Numpy array to a given path in npy format.
+    :param image: Numpy array.
+    :param path_target: String, path where to store the created jpg.
+    """
+    np.save(path_target, image)
 

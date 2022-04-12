@@ -4,8 +4,7 @@ This file contains useful functions for the networks training steps
 import numpy as np
 import imageio as io
 import matplotlib.pyplot as plt
-from preprocessing import get_all_files
-from sklearn.preprocessing import LabelBinarizer
+from Code.utils.preprocessing import get_all_files
 
 
 def append_history(losses, val_losses, accuracies, val_accuracies, history):
@@ -67,20 +66,15 @@ def get_X_y_file_names(path):
              Numpy array, input labels.
              Numpy array, input file names.
     """
-    unfiltered_file_list = get_all_files(path)
-    vessel_list = [item for item in unfiltered_file_list]
-    X = []
-    y = []
-    for el, en in enumerate(vessel_list):
-        X.append(load_to_numpy(en))
-        if "no_vessel" in en:
-            y.append(0)
-        else:
-            y.append(1)
-    lb = LabelBinarizer()
-    X = np.array(X, dtype=np.float64)
-    y = lb.fit_transform(y)
-    return X, y, vessel_list
+    file_list = get_all_files(path)
+    patch_size = np.load(file_list[0]).shape[0]
+    X = np.empty((len(file_list), patch_size, patch_size))
+    y = np.full((len(X),), 0)
+    for i, current_patch_path in enumerate(file_list):
+        X[i] = np.load(current_patch_path)
+        if "no_vessel" not in current_patch_path:  # it means there is a vessel in the current patch
+            y[i] = 1
+    return X, y, file_list
 
 
 def random_under_sampling(X, y):
@@ -156,7 +150,7 @@ def shuffle_data(X, y, file_names):
 
 
 # used for active learning
-def shuffle_split_and_normalize(X, y,file_names, X_test_final, train_size):
+def shuffle_and_split(X, y, file_names, X_test_final, train_size):
     """
     Shuffle, split and normalize input data.
     :param X: Numpy array, input data.
@@ -174,7 +168,7 @@ def shuffle_split_and_normalize(X, y,file_names, X_test_final, train_size):
     """
     indices = np.array(range(len(y)))
     np.random.shuffle(indices)
-    indices_train = np.random.choice(len(y), size=int(train_size*len(y)),replace=False)
+    indices_train = np.random.choice(len(y), size=int(train_size*len(y)), replace=False)
     indices_test = np.setxor1d(indices, indices_train)
     X_train = X[indices_train]
     y_train = y[indices_train]
@@ -182,12 +176,12 @@ def shuffle_split_and_normalize(X, y,file_names, X_test_final, train_size):
     X_test = X[indices_test]
     y_test = y[indices_test]
     file_names_test = np.array(file_names)[indices_test]
-    train_mean = np.mean(X)  # mean for data centering
-    train_std = np.std(X)  # std for data normalization
-    X_train -= train_mean
-    X_train /= train_std
-    X_test -= train_mean
-    X_test /= train_std
-    X_test_final -= train_mean
-    X_test_final /= train_std
+    # train_mean = np.mean(X)  # mean for data centering
+    # train_std = np.std(X)  # std for data normalization
+    # X_train -= train_mean
+    # X_train /= train_std
+    # X_test -= train_mean
+    # X_test /= train_std
+    # X_test_final -= train_mean
+    # X_test_final /= train_std
     return X_train, X_test, y_train, y_test, file_names_train, file_names_test, X_test_final
