@@ -21,6 +21,9 @@ def main(patch_size):
 
     for i, j in enumerate(input_images):
         img_mat = load_nifti_mat_from_file(masked_images_path + j)
+        # Squashes input between 0.0 and 1.0
+        img_mat -= img_mat.min()
+        img_mat /= img_mat.max()
         # Compute image dimensions once since all images have the same dimensions and perform a check on the patch size
         if i == 0:
             label_mat = load_nifti_mat_from_file(masked_images_path + label_images[i])
@@ -48,17 +51,18 @@ def main(patch_size):
                     patch_start_y = y_min + patch_size * n
                     patch_end_y = y_min + patch_size * (n + 1) - 1
                     # Apply the grid on the NIfTI image
-                    # TODO: change it adding "current_slice" dimension when the train will be done with all the images
+                    # TODO: change it adding "i" dimension when the train will be done with all the images
                     img_with_grid[patch_start_x: patch_end_x, patch_start_y] = 255
                     img_with_grid[patch_start_x: patch_end_x, patch_end_y] = 255
                     img_with_grid[patch_start_x, patch_start_y: patch_end_y] = 255
                     img_with_grid[patch_end_x, patch_start_y: patch_end_y] = 255
                     # Get the patch to be saved and its pixel-level label
-                    current_patch = np.array(img_mat[patch_start_x: patch_end_x + 1, patch_start_y:patch_end_y + 1, current_slice]).astype(np.uint8)
-                    current_patch_label = np.array(label_mat[patch_start_x: patch_end_x + 1, patch_start_y:patch_end_y + 1, current_slice]).astype(np.uint8)
+                    current_patch = img_mat[patch_start_x: patch_end_x + 1, patch_start_y:patch_end_y + 1, current_slice]
+                    current_patch_label = label_mat[patch_start_x: patch_end_x + 1, patch_start_y:patch_end_y + 1, current_slice].astype(np.uint8)
 
                     # Save with different names patches which contain vessels from those which don't
-                    if 255 in current_patch_label:
+                    # Note: labels are NIfTI images where 0.0 is black (no-vessel) and 1.0 is white (vessel)
+                    if 1 in current_patch_label:
                         label = "vessel"
                     else:
                         label = "no_vessel"
@@ -67,10 +71,11 @@ def main(patch_size):
                     if np.max(current_patch) != 0:
                         # TODO: change it when the train will be done with all the images
                         # Keep last 2 slices images as test set, save train and test patches in the respective folders
+                        # Note: save as npy files since NIfTI images' pixels have also values greater than 255
                         if current_slice in selected_slices[-2:]:
-                            create_and_save_image(current_patch, patches_test_path + f"{label}_{m}_{n}_{current_slice}_{j[:-8]}.jpg")
+                            create_and_save_image_as_ndarray(current_patch, patches_test_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]','', j)}")
                         else:
-                            create_and_save_image(current_patch, patches_train_path + f"{label}_{m}_{n}_{current_slice}_{j[:-8]}.jpg")
+                            create_and_save_image_as_ndarray(current_patch, patches_train_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]','', j)}")
 
         # Save the NIfTI image with grid
         create_and_save_nifti(img_with_grid, grid_path + j)

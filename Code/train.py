@@ -1,4 +1,6 @@
 import keras.callbacks
+import numpy as np
+
 from Nets.pnet import *
 from Nets.resnet import *
 from Nets.vgg import *
@@ -14,97 +16,111 @@ from scipy.stats import entropy
 import cv2
 
 
-def train_whole_dataset(patch_dir, test_path, method):
+def train_whole_dataset(train_patches_path, test_patches_path, input_images_shape, method):
     np.random.seed(42)
     # X, y origin dataset and list of names of files (useful for reconstructing images at the end)
-    X, y, file_names_train = get_X_y_file_names(patch_dir)
+    X, y, file_names = get_X_y_file_names(train_patches_path)
     # Uncomment if you want to try under sampling
     # X, y = random_under_sampling(X, y)
-    X_train, y_train, file_names_train = shuffle_data(X, y, file_names_train)
-    X_train, train_mean, train_std = normalize(X_train)
-    X_test, y_test, file_names_test = get_X_y_file_names(test_path)
-    X_test -= train_mean
-    X_test /= train_std
+    X_train, y_train, file_names_train = shuffle_data(X, y, file_names)
+    X_test, y_test, file_names_test = get_X_y_file_names(test_patches_path)
+
+    # Compute the number of patches per image
+    patch_size = X[0].shape[0]
+    x_patches_per_image = int(input_images_shape[0] / patch_size)
+    y_patches_per_image = int(input_images_shape[1] / patch_size)
+
+    # Make images appear as 3-channels images to use architecture like VGG, etc.
+    X_train = np.repeat(X[..., np.newaxis], 3, -1)
+    X_test = np.repeat(X_test[..., np.newaxis], 3, -1)
 
     # NOTE: training the whole dataset with the classification network was done to assess performances and comparing
     #       them with active learning. Here we are simulating the case where we have all the labels thanks to the
     #       oracle (human expert). So, if you just want to exploit that annotations (at patch level) and passing them
-    #       to the KMeans or to Canny methods, you can skip this CNN.
+    #       to the K-means or to Canny methods, you can skip the following CNN.
 
-    patch_size = 32
     # Choose the model you want
     # model = get_pnetcls(patch_size)
     # model = get_resnet(patch_size)
-    model = get_vgg(patch_size)
+    # model = get_vgg(patch_size)
+    # #
+    # print('Training model...')
+    # history = model.fit(
+    #     X_train,
+    #     y_train,
+    #     epochs=2,
+    #     batch_size=32,
+    #     validation_split=0.2,
+    #     callbacks=[
+    #         keras.callbacks.ModelCheckpoint(
+    #             "FullModelCheckpoint.h5", verbose=1, save_best_only=True
+    #         ),
+    #     ],
+    # )
     #
-    print('Training model...')
-    history = model.fit(
-        X_train,
-        y_train,
-        epochs=20,
-        batch_size=32,
-        validation_split=0.2,
-        callbacks=[
-            keras.callbacks.ModelCheckpoint(
-                "FullModelCheckpoint.h5", verbose=1, save_best_only=True
-            ),
-        ],
-    )
-
-    plot_history(
-        history.history["loss"],
-        history.history["val_loss"],
-        history.history["accuracy"],
-        history.history["val_accuracy"],
-    )
-
-    y_pred = model.predict(X_test)
-    y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
-
-    accuracy_score_test = accuracy_score(y_test, y_pred_rounded)
-    precision_score_test = precision_score(y_test, y_pred_rounded)
-    recall_score_test = recall_score(y_test, y_pred_rounded)
-    f1_score_test = f1_score(y_test, y_pred_rounded)
-
-    print(f"Accuracy on test: {accuracy_score_test}")
-    print(f"Precision on test: {precision_score_test}")
-    print(f"Recall on test: {recall_score_test}")
-    print(f"f1 on test: {f1_score_test}")
-    print(classification_report(y_test, y_pred_rounded))
-
-    print()
-    print('DONE')
+    # plot_history(
+    #     history.history["loss"],
+    #     history.history["val_loss"],
+    #     history.history["accuracy"],
+    #     history.history["val_accuracy"],
+    # )
+    #
+    # y_pred = model.predict(X_test)
+    # y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
+    #
+    # accuracy_score_test = accuracy_score(y_test, y_pred_rounded)
+    # precision_score_test = precision_score(y_test, y_pred_rounded)
+    # recall_score_test = recall_score(y_test, y_pred_rounded)
+    # f1_score_test = f1_score(y_test, y_pred_rounded)
+    #
+    # print(f"Accuracy on test: {accuracy_score_test}")
+    # print(f"Precision on test: {precision_score_test}")
+    # print(f"Recall on test: {recall_score_test}")
+    # print(f"f1 on test: {f1_score_test}")
+    # print(classification_report(y_test, y_pred_rounded))
+    #
+    # print()
+    # print('DONE')
 
     # Choose either kmeans or canny method to get a first approximation of pixel-level labels.
     if method == "kmeans":
         clustered_images = []
         for index, X_train_sample in enumerate(X_train):
-            clustered_images.append(kmeans(X_train_sample, y_train.squeeze()[index]))
+            clustered_images.append(kmeans(X_train_sample, y_train[index]))
         images_to_rec = np.array(clustered_images)
     else:
         canny_images = []
         for index, X_train_sample in enumerate(X_train):
-            canny_images.append(canny(X_train_sample, y_train.squeeze()[index]))
+            canny_images.append(canny(X_train_sample, y_train[index]))
         images_to_rec = np.array(canny_images)
 
-    # reconstruct segmented image by patches
-    reconstructed_images = reconstruct(images_to_rec, file_names_train)
+    # Reconstruct segmented image by patches
+    reconstructed_images = reconstruct(images_to_rec, file_names, x_patches_per_image, y_patches_per_image)
     return reconstructed_images
 
 
-def train_active_learning(patch_dir, test_path, num_iterations, metrics, method):
+def train_active_learning(train_patches_path, test_patches_path, input_images_shape, num_iterations, metrics, method):
     np.random.seed(42)
-    X, y, file_names = get_X_y_file_names(patch_dir)
+    X, y, file_names = get_X_y_file_names(train_patches_path)
     # X, y = random_under_sampling(X, y)
     # We start with a 15% of the samples
-    X_test_final, y_test_final, _ = get_X_y_file_names(test_path)
+    X_test_final, y_test_final, _ = get_X_y_file_names(test_patches_path)
+
+    # Compute the number of patches per image
+    patch_size = X[0].shape[0]
+    x_patches_per_image = int(input_images_shape[0] / patch_size)
+    y_patches_per_image = int(input_images_shape[1] / patch_size)
+
+    # Make images appear as 3-channels images to use architecture like VGG, etc.
+    X = np.repeat(X[..., np.newaxis], 3, -1)
+    X_test_final = np.repeat(X_test_final[..., np.newaxis], 3, -1)
+
     X_train, X_test, y_train, y_test, \
-        file_names_train, file_names_test, X_test_final = shuffle_split_and_normalize(X, y, file_names, X_test_final,
-                                                                                      train_size=0.15)
+        file_names_train, file_names_test, X_test_final = shuffle_and_split(X, y, file_names, X_test_final,
+                                                                            train_size=0.15)
     # Creating lists for storing metrics
     losses, val_losses, accuracies, val_accuracies = [], [], [], []
 
-    patch_size = 32
     # model = get_pnetcls(patch_size)
     # model = get_resnet(patch_size)
     model = get_vgg(patch_size)
@@ -248,7 +264,7 @@ def train_active_learning(patch_dir, test_path, num_iterations, metrics, method)
         images_to_rec = np.array(canny_images)
 
     # reconstruct segmented image by patches
-    reconstructed_images = reconstruct(images_to_rec, file_names)
+    reconstructed_images = reconstruct(images_to_rec, file_names, x_patches_per_image, y_patches_per_image)
     return reconstructed_images
 
 

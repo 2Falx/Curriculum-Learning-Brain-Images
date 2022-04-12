@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
+
 
 def kmeans(patch_image, prediction):
 
@@ -15,46 +15,29 @@ def kmeans(patch_image, prediction):
 
     # value that we want to add to the classes in an image (to be more precise avoiding noise)
     addition = 1
-    # check if there is black in the patch (i.e. if the patch represents a piece of border of the eye)
-    # a black pixel is close to [0,0,0] RGB -> the mean will be close to 0
-    avg_rgb_image = np.mean(norm_image,axis=2)
-    # if 0 in norm_image:
-    if np.any(avg_rgb_image <= 5):
-        if prediction == 'non-vessel':  # black and eye without vessels
-            K = 2
-        else:  # black, eye vessels and rest of the eye
-            K = 3 + addition + 1
-    else:
-        if prediction == 'non-vessel':  # eye without vessels
-            K = 1
-        else:  # eye vessels and rest of the eye
-            K = 2 + addition
 
+    if prediction == 'non-vessel':
+        K = 1  # Mask it with only one cluster
+    else:
+        K = 2 + addition  # cluster for vessel, for rest of the eye and additional clusters for specificity
 
     _, label, center = cv2.kmeans(vectorized, K, None, criteria, attempts, cv2.KMEANS_PP_CENTERS)
     center = np.uint8(center)
     # Assign to each pixel its centroid
     res = center[label.flatten()]
-    result_image = res.reshape(norm_image.shape)
+    result_patch = res.reshape(norm_image.shape)
 
-    if prediction == 'vessel' and np.mean(result_image,axis=2).min() > 1:  # due to the dataset we classify borders of the eye as non vessels even if a small one is present
-        # make it white and white and black
-        # first let's convert to gray
-        result_image = cv2.cvtColor(result_image, cv2.COLOR_RGB2GRAY)
-        darkest_pixel = result_image.min() # the ones where it's likely to have vessels
-        # keep only black and switch it to white, switch all the rest to black
-        # first check if too many pixels are classified as vessels (probably it would be a misclassification)
-        if np.sum(result_image <= (darkest_pixel + 0)) >= (0.25 * 32 * 32):  # 1/4 of the patch
-            # in this case ignore the patche by masking it
-            result_image[:, :] = 0  # mask it since it is no-vessel
-            result_image_final = result_image.copy()
-        else:
-            result_image_final = result_image.copy()
-            result_image_final[result_image <= darkest_pixel + 0] = 255
-            result_image_final[result_image > darkest_pixel + 0] = 0
+    if prediction == 'vessel':
+        # First let's convert to gray
+        result_patch = cv2.cvtColor(result_patch, cv2.COLOR_RGB2GRAY)
+        lightest_pixel = result_patch.max()  # the ones where it's likely to have vessels
+        # Color the final patch in white and black
+        result_patch_final = result_patch.copy()
+        result_patch_final[result_patch >= lightest_pixel - 1] = 255
+        result_patch_final[result_patch < lightest_pixel - 1] = 0
     else:
-        result_image = cv2.cvtColor(result_image, cv2.COLOR_RGB2GRAY)
-        result_image[:,:] = 0  # mask it since it is no-vessel
-        result_image_final = result_image.copy()
+        result_patch = cv2.cvtColor(result_patch, cv2.COLOR_RGB2GRAY)
+        result_patch[:, :] = 0  # mask it since it is no-vessel
+        result_patch_final = result_patch.copy()
 
-    return result_image_final
+    return result_patch_final

@@ -1,6 +1,7 @@
 from pathlib import Path
 from utility import *
 
+
 def reconstruct(clustered_images, file_names, iterationAL):
     # create a numpy array which will contain ordered patches
     # since we discarded some black patches we initialize this array with full zeros (black)
