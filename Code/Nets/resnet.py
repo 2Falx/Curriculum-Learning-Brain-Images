@@ -6,8 +6,8 @@ from keras import regularizers
 import tensorflow as tf
 from tensorflow.keras.applications.resnet50 import ResNet50
 
-def get_resnet(patch_size):
 
+def get_resnet(patch_size):
     # create the base pre-trained model
     base_model = ResNet50(include_top=False, weights='imagenet', input_shape=(patch_size, patch_size, 3))
     # we add a global average pooling layer

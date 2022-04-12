@@ -6,8 +6,8 @@ from keras import regularizers
 import tensorflow as tf
 from tensorflow.keras.applications.vgg16 import VGG16
 
-def get_vgg(patch_size):
 
+def get_vgg(patch_size):
     # create the base pre-trained model
     base_model = VGG16(include_top=False, weights='imagenet', input_shape=(patch_size, patch_size, 3))
     # we add a global average pooling layer

@@ -4,7 +4,7 @@ from keras.layers import Dropout, Convolution2D, MaxPooling2D, Input, UpSampling
 
 def conv_block(m, num_kernels, kernel_size, strides, padding, activation, dropout, data_format, bn):
     """
-    Bulding block with convolutional layers for one level.
+    Building block with convolutional layers for one level.
     """
     n = Convolution2D(num_kernels, kernel_size, strides=strides, activation=activation, padding=padding,
                       data_format=data_format)(m)
@@ -18,7 +18,7 @@ def conv_block(m, num_kernels, kernel_size, strides, padding, activation, dropou
 
 def up_concat_block(m, concat_channels, pool_size, concat_axis, data_format):
     """
-    Bulding block with up-sampling and concatenation for one level in the first 2D-Unet.
+    Building block with up-sampling and concatenation for one level in the first 2D-Unet.
     """
     n = UpSampling2D(size=pool_size, data_format=data_format)(m)
     n = concatenate([n, concat_channels], axis=concat_axis)
@@ -27,7 +27,7 @@ def up_concat_block(m, concat_channels, pool_size, concat_axis, data_format):
 
 def up_concat_block2(m, concat_channels1, concat_channels2, pool_size, concat_axis, data_format):
     """
-    Bulding block with up-sampling and concatenation for one level in the second 2D-Unet.
+    Building block with up-sampling and concatenation for one level in the second 2D-Unet.
     """
     n = UpSampling2D(size=pool_size, data_format=data_format)(m)
     n = concatenate([n, concat_channels1, concat_channels2], axis=concat_axis)

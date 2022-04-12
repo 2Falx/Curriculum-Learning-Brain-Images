@@ -1,5 +1,6 @@
 import tensorflow as tf
-from tensorflow.keras import datasets, layers, models
+from tensorflow.keras import layers, models
+
 
 def get_very_simple_model(patch_size):
     model = models.Sequential()
