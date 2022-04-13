@@ -31,8 +31,9 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
     y_patches_per_image = int(input_images_shape[1] / patch_size)
 
     # Make images appear as 3-channels images to use architecture like VGG, etc.
-    X_train = np.repeat(X[..., np.newaxis], 3, -1)
-    X_test = np.repeat(X_test[..., np.newaxis], 3, -1)
+    # TODO: fix it, it changes the patches' appearance
+    # X_train = np.repeat(X[..., np.newaxis], 3, -1)
+    # X_test = np.repeat(X_test[..., np.newaxis], 3, -1)
 
     # NOTE: training the whole dataset with the classification network was done to assess performances and comparing
     #       them with active learning. Here we are simulating the case where we have all the labels thanks to the
@@ -86,7 +87,7 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
     if method == "kmeans":
         clustered_images = []
         for index, X_train_sample in enumerate(X_train):
-            clustered_images.append(kmeans(X_train_sample, y_train[index]))
+            clustered_images.append(kmeans(X_train_sample, y_train[index], file_names_train[index]))
         images_to_rec = np.array(clustered_images)
     else:
         canny_images = []
