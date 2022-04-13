@@ -37,6 +37,7 @@ def main(patch_size):
             num_of_x_patches = np.int((x_max - x_min)/patch_size) + 1
             num_of_y_patches = np.int((y_max - y_min)/patch_size) + 1
         img_with_grid = img_mat.copy()  # this will contain the image with the grid placed on it, NIfTI format
+        label_with_grid = label_mat.copy()  # this will contain the image with the grid placed on it, NIfTI format
 
         # TODO: change it when the train will be done with all the images
         selected_slices = np.arange(60, 110, step=5)
@@ -50,12 +51,13 @@ def main(patch_size):
                     patch_end_x = x_min + patch_size * (m + 1) - 1
                     patch_start_y = y_min + patch_size * n
                     patch_end_y = y_min + patch_size * (n + 1) - 1
-                    # Apply the grid on the NIfTI image
+                    # Apply the grid on the NIfTI image and its NIfTI label
                     # TODO: change it adding "i" dimension when the train will be done with all the images
-                    img_with_grid[patch_start_x: patch_end_x, patch_start_y] = 255
-                    img_with_grid[patch_start_x: patch_end_x, patch_end_y] = 255
-                    img_with_grid[patch_start_x, patch_start_y: patch_end_y] = 255
-                    img_with_grid[patch_end_x, patch_start_y: patch_end_y] = 255
+                    for grid in [img_with_grid, label_with_grid]:
+                        grid[patch_start_x: patch_end_x, patch_start_y] = 1
+                        grid[patch_start_x: patch_end_x, patch_end_y] = 1
+                        grid[patch_start_x, patch_start_y: patch_end_y] = 1
+                        grid[patch_end_x, patch_start_y: patch_end_y] = 1
                     # Get the patch to be saved and its pixel-level label
                     current_patch = img_mat[patch_start_x: patch_end_x + 1, patch_start_y:patch_end_y + 1, current_slice]
                     current_patch_label = label_mat[patch_start_x: patch_end_x + 1, patch_start_y:patch_end_y + 1, current_slice].astype(np.uint8)
@@ -77,8 +79,9 @@ def main(patch_size):
                         else:
                             create_and_save_image_as_ndarray(current_patch, patches_train_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]','', j)}")
 
-        # Save the NIfTI image with grid
+        # Save the NIfTI image and label with grid
         create_and_save_nifti(img_with_grid, grid_path + j)
+        create_and_save_nifti(label_with_grid, grid_path + j[:-7] + "label.nii")
         print("Patches generated")
 
 
