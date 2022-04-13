@@ -154,8 +154,8 @@ fabric.properties
 *.gdoc
 *.ipynb
 
-# model checkpoint
-ALModelCheckpoint.h5
+# models checkpoint
+*.h5
 
 # folders with images
 train/
