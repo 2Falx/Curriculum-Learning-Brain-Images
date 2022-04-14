@@ -1,3 +1,6 @@
+"""
+This file implements the segmentation of the patch through clustering.
+"""
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
@@ -17,7 +20,7 @@ def kmeans(patch_image, prediction, file_name):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
     attempts = 10
 
-    # value that we want to add to the classes in an image (to be more precise avoiding noise)
+    # Value that we want to add to the classes in an image (to be more precise avoiding noise)
     addition = 1
 
     if prediction == 'non-vessel':
@@ -33,23 +36,45 @@ def kmeans(patch_image, prediction, file_name):
 
     # If more than 25% of the image is classified as vessel, it is a probable wrong classification -> mask it
     # The loss would be small because it means the vessel in the patch is very small and it is not segmented by K-means
-    if prediction == 'vessel' and np.sum(result_patch >= (result_patch.max() - 0)) <= (0.25 * patch_size ** 2):
+    if prediction == 'vessel' and np.sum(result_patch >= (result_patch.max() - 0)) <= 0.25 * patch_size ** 2:
         lightest_pixel = result_patch.max()  # the ones where it's likely to have vessels
         # Color the final patch in white and black
         result_patch_final = result_patch.copy()
         result_patch_final[result_patch >= lightest_pixel - 1] = 255
         result_patch_final[result_patch < lightest_pixel - 1] = 0
+    # If the prediction is vessel, but the K-means segmented too much noise, we implement a segmentation by hand
+    # considering the lightest pixel and a threshold
+    elif prediction == 'vessel':
+        myKM_patch = blur_patch.copy()
+        myKM_patch[myKM_patch >= blur_patch.max() - 50] = 255  # threshold set to 50
+        myKM_patch[myKM_patch < blur_patch.max() - 50] = 0
+        # Check if the hand-clustering didn't capture too much noise as well
+        if np.sum(myKM_patch == 255) <= 0.25 * patch_size ** 2:
+            result_patch_final = myKM_patch
+        else:  # Mask it to avoid capturing the noise
+            result_patch[:, :] = 0
+            result_patch_final = result_patch
     else:
         result_patch[:, :] = 0  # mask it since it is no-vessel
-        result_patch_final = result_patch.copy()
+        result_patch_final = result_patch
 
-    # debugging purposes
+    # Debugging purposes
     # if prediction == "vessel":
-    #     plt.imshow(patch_image, "gray")
-    #     plt.title(file_name)
+    #     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15, 8))
+    #     axs[0].imshow(patch_image, "gray")
+    #     axs[0].set_title("Original patch")
+    #     axs[1].imshow(myKM_patch, "gray")
+    #     axs[1].set_title("Hand-clustering")
+    #     axs[2].imshow(result_patch_final, "gray")
+    #     axs[2].set_title("K-means")
     #     plt.show()
-    #     plt.imshow(result_patch_final, "gray")
-    #     plt.title(file_name)
-    #     plt.show()
+
+    if prediction == "vessel":
+        fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(12, 8))
+        axs[0].imshow(patch_image, "gray")
+        axs[0].set_title("Original patch")
+        axs[1].imshow(result_patch_final, "gray")
+        axs[1].set_title("Segmentation")
+        plt.show()
 
     return result_patch_final
