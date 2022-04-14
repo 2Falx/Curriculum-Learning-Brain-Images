@@ -1,3 +1,4 @@
+import nibabel
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -20,7 +21,8 @@ def reconstruct(clustered_patches, file_names, x_patches_per_image, y_patches_pe
         for word in file_name_extract.split():
             if word.isdigit():
                 data.append(int(word))
-        ordered_patches[patches_per_image * (data[-1] - 1) + data[0]*y_patches_per_image + data[1] + 1] = clustered_patches[i]  # cv2.cvtColor(clustered_images[i], cv2.COLOR_RGB2GRAY)
+        curr_index = patches_per_image * int((data[-2] - 60) / 5) + data[0]*y_patches_per_image + data[1] + 1
+        ordered_patches[curr_index] = clustered_patches[i]
 
     final_images = np.zeros((tot_images, int(patch_size * patches_per_image / y_patches_per_image),
                             int(patch_size * patches_per_image / x_patches_per_image)))  # 8 images 768x576
@@ -28,16 +30,25 @@ def reconstruct(clustered_patches, file_names, x_patches_per_image, y_patches_pe
         for i in range(x_patches_per_image):  # along the rows
             for j in range(y_patches_per_image):  # along the columns
                 if j == 0:
-                    toAttachH = ordered_patches[iteration * patches_per_image + i * x_patches_per_image + j]
+                    toAttachH = ordered_patches[iteration * patches_per_image + i * y_patches_per_image + j]
                 else:
-                    toAttachH = np.hstack((toAttachH, ordered_patches[iteration * patches_per_image + i * x_patches_per_image + j]))
+                    toAttachH = np.hstack((toAttachH, ordered_patches[iteration * patches_per_image + i * y_patches_per_image + j]))
             if i == 0:
                 toAttachV = toAttachH
             else:
                 toAttachV = np.vstack((toAttachV, toAttachH))
         final_images[iteration] = toAttachV
 
-    # for image in final_images:
-    #    plt.imshow(image,"gray")
-    #    plt.show()
+    for i, image in enumerate(final_images):
+        original_image = nibabel.load("images/skull_stripped_images/brain2_img.nii").get_fdata()[:, :, 60 + 5 * i]
+        label = nibabel.load("images/skull_stripped_images/brain2_label.nii").get_fdata()[:, :, 60 + 5 * i]
+        fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15, 8))
+        axs[0].imshow(original_image, "gray")
+        axs[0].set_title("Original image")
+        axs[1].imshow(image, "gray")
+        axs[1].set_title("Reconstructed image")
+        axs[2].imshow(label, "gray")
+        axs[2].set_title("Ground truth")
+        plt.show()
+
     return final_images

@@ -96,7 +96,7 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
         images_to_rec = np.array(canny_images)
 
     # Reconstruct segmented image by patches
-    reconstructed_images = reconstruct(images_to_rec, file_names, x_patches_per_image, y_patches_per_image)
+    reconstructed_images = reconstruct(images_to_rec, file_names_train, x_patches_per_image, y_patches_per_image)
     return reconstructed_images
 
 
