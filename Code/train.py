@@ -87,7 +87,7 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
     if method == "kmeans":
         clustered_images = []
         for index, X_train_sample in enumerate(X_train):
-            clustered_images.append(kmeans(X_train_sample, y_train[index], file_names_train[index]))
+            clustered_images.append(kmeans(X_train_sample, y_train[index]))
         images_to_rec = np.array(clustered_images)
     else:
         canny_images = []
