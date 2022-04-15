@@ -1,8 +1,5 @@
-from keras.layers import Input, Conv2D, Activation, BatchNormalization, GlobalAveragePooling2D, Dense, Dropout, GlobalMaxPooling2D
-from keras.layers.merge import add
-from keras.activations import relu, softmax, sigmoid
+from keras.layers import GlobalAveragePooling2D, Dense
 from keras.models import Model
-from keras import regularizers
 import tensorflow as tf
 from tensorflow.keras.applications.resnet50 import ResNet50
 
