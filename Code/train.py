@@ -1,15 +1,9 @@
 import keras.callbacks
-import numpy as np
-
-from Nets.pnet import *
-from Nets.resnet import *
-from Nets.vgg import *
-from Nets.wnetseg import *
+import nets
 from utils.network_train import *
+from utils.unsupervised import *
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
-from clustering import *
-from canny import *
 from reconstructor import *
 import reconstructor_AL
 from scipy.stats import entropy
@@ -41,47 +35,47 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
     #       to the K-means or to Canny methods, you can skip the following CNN.
 
     # Choose the model you want
-    # model = get_pnetcls(patch_size)
-    # model = get_resnet(patch_size)
-    # model = get_vgg(patch_size)
-    # #
-    # print('Training model...')
-    # history = model.fit(
-    #     X_train,
-    #     y_train,
-    #     epochs=2,
-    #     batch_size=32,
-    #     validation_split=0.2,
-    #     callbacks=[
-    #         keras.callbacks.ModelCheckpoint(
-    #             "FullModelCheckpoint.h5", verbose=1, save_best_only=True
-    #         ),
-    #     ],
-    # )
+    model = nets.pnet.get_pnetcls(patch_size)
+    # model = nets.resnet.get_resnet(patch_size)
+    # model = nets.vgg.get_vgg(patch_size)
     #
-    # plot_history(
-    #     history.history["loss"],
-    #     history.history["val_loss"],
-    #     history.history["accuracy"],
-    #     history.history["val_accuracy"],
-    # )
-    #
-    # y_pred = model.predict(X_test)
-    # y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
-    #
-    # accuracy_score_test = accuracy_score(y_test, y_pred_rounded)
-    # precision_score_test = precision_score(y_test, y_pred_rounded)
-    # recall_score_test = recall_score(y_test, y_pred_rounded)
-    # f1_score_test = f1_score(y_test, y_pred_rounded)
-    #
-    # print(f"Accuracy on test: {accuracy_score_test}")
-    # print(f"Precision on test: {precision_score_test}")
-    # print(f"Recall on test: {recall_score_test}")
-    # print(f"f1 on test: {f1_score_test}")
-    # print(classification_report(y_test, y_pred_rounded))
-    #
-    # print()
-    # print('DONE')
+    print('Training model...')
+    history = model.fit(
+        X_train,
+        y_train,
+        epochs=2,
+        batch_size=32,
+        validation_split=0.2,
+        callbacks=[
+            keras.callbacks.ModelCheckpoint(
+                "FullModelCheckpoint.h5", verbose=1, save_best_only=True
+            ),
+        ],
+    )
+
+    plot_history(
+        history.history["loss"],
+        history.history["val_loss"],
+        history.history["accuracy"],
+        history.history["val_accuracy"],
+    )
+
+    y_pred = model.predict(X_test)
+    y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
+
+    accuracy_score_test = accuracy_score(y_test, y_pred_rounded)
+    precision_score_test = precision_score(y_test, y_pred_rounded)
+    recall_score_test = recall_score(y_test, y_pred_rounded)
+    f1_score_test = f1_score(y_test, y_pred_rounded)
+
+    print(f"Accuracy on test: {accuracy_score_test}")
+    print(f"Precision on test: {precision_score_test}")
+    print(f"Recall on test: {recall_score_test}")
+    print(f"f1 on test: {f1_score_test}")
+    print(classification_report(y_test, y_pred_rounded))
+
+    print()
+    print('DONE')
 
     # Choose either kmeans or canny method to get a first approximation of pixel-level labels.
     if method == "kmeans":
