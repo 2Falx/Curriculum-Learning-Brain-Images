@@ -1,6 +1,5 @@
 import keras.callbacks
-import numpy as np
-
+from utils.preprocessing import get_all_files, load_nifti_mat_from_file
 from nets.pnet import *
 from nets.resnet import *
 from nets.vgg import *
@@ -12,8 +11,6 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from reconstructor import *
 import reconstructor_AL
 from scipy.stats import entropy
-import cv2
-from sklearn.preprocessing import LabelBinarizer
 
 
 def train_whole_dataset(train_patches_path, test_patches_path, input_images_shape, method):
@@ -38,59 +35,59 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
     # Choose the model
     # model = get_pnetcls(patch_size)
     # model = get_resnet(patch_size)
-    model = get_vgg(patch_size)
-
-    print('Training model...')
-    history = model.fit(
-        X_train,
-        y_train,
-        epochs=10,
-        batch_size=64,
-        validation_split=0.3,
-        callbacks=[
-            keras.callbacks.ModelCheckpoint(
-                "FullModelCheckpoint.h5", verbose=1, save_best_only=True
-            ),
-        ],
-    )
-
-    plot_history(
-        history.history["loss"],
-        history.history["val_loss"],
-        history.history["accuracy"],
-        history.history["val_accuracy"],
-    )
-
-    y_pred = model.predict(X_test)
-    y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
-
-    # Save predictions in a .npy , check them after training with np.load
-    np.save("predictions", y_pred_rounded)
-
-    accuracy_score_test = accuracy_score(y_test, y_pred_rounded)
-    precision_score_test = precision_score(y_test, y_pred_rounded)
-    recall_score_test = recall_score(y_test, y_pred_rounded)
-    f1_score_test = f1_score(y_test, y_pred_rounded)
-
-    print(f"Accuracy on test: {accuracy_score_test}")
-    print(f"Precision on test: {precision_score_test}")
-    print(f"Recall on test: {recall_score_test}")
-    print(f"f1 on test: {f1_score_test}")
-    print(classification_report(y_test, y_pred_rounded))
-
-    print()
-    print('DONE')
+    # model = get_vgg(patch_size)
+    #
+    # print('Training model...')
+    # history = model.fit(
+    #     X_train,
+    #     y_train,
+    #     epochs=10,
+    #     batch_size=64,
+    #     validation_split=0.3,
+    #     callbacks=[
+    #         keras.callbacks.ModelCheckpoint(
+    #             "FullModelCheckpoint.h5", verbose=1, save_best_only=True
+    #         ),
+    #     ],
+    # )
+    #
+    # plot_history(
+    #     history.history["loss"],
+    #     history.history["val_loss"],
+    #     history.history["accuracy"],
+    #     history.history["val_accuracy"],
+    # )
+    #
+    # y_pred = model.predict(X_test)
+    # y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
+    #
+    # # Save predictions in a .npy , check them after training with np.load
+    # np.save("predictions", y_pred_rounded)
+    #
+    # accuracy_score_test = accuracy_score(y_test, y_pred_rounded)
+    # precision_score_test = precision_score(y_test, y_pred_rounded)
+    # recall_score_test = recall_score(y_test, y_pred_rounded)
+    # f1_score_test = f1_score(y_test, y_pred_rounded)
+    #
+    # print(f"Accuracy on test: {accuracy_score_test}")
+    # print(f"Precision on test: {precision_score_test}")
+    # print(f"Recall on test: {recall_score_test}")
+    # print(f"f1 on test: {f1_score_test}")
+    # print(classification_report(y_test, y_pred_rounded))
+    #
+    # print()
+    # print('DONE')
 
     # Choose either kmeans or canny method to get a first approximation of pixel-level labels.
     if method == "kmeans":
         clustered_images = []
         for index, X_train_sample in enumerate(X_train):
-            clustered_images.append(kmeans(X_train_sample, y_train[index]))
+            clustered_images.append(kmeans(X_train_sample, y_train[index], viz=False))
         images_to_rec = np.array(clustered_images)
     else:
         canny_images = []
         for index, X_train_sample in enumerate(X_train):
-            canny_images.append(canny(X_train_sample, y_train[index]))
+            canny_images.append(canny(X_train_sample, y_train[index], viz=False))
         images_to_rec = np.array(canny_images)
 
     # Reconstruct segmented image by patches
@@ -268,17 +265,29 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
     return reconstructed_images
 
 
-def seg_net(train_input_path, labels):
-    unfiltered_file_list = get_all_files(train_input_path)
-    vessel_list = [item for item in unfiltered_file_list]
-    images = []
-    for en in vessel_list:
-        images.append(cv2.cvtColor(cv2.imread(en), cv2.COLOR_RGB2GRAY))
-    X = np.array(images)
+def seg_net(images_path, labels):
+    nifti_list = get_all_files(images_path)
+    image_x_size = load_nifti_mat_from_file(nifti_list[0]).shape[0]
+    image_y_size = load_nifti_mat_from_file(nifti_list[0]).shape[1]
+    X = []
+    for brain_nifti in nifti_list:
+        if "_img" in brain_nifti:
+            X.append(load_nifti_mat_from_file(brain_nifti))
+    X = np.array(X)
 
-    X_train = X[:16]
-    X_test = X[16:]
-    labels = labels[:16]
+    for i in range(len(X)):
+        # TODO: adjust this for multi NIfTI images
+        selected_slices = np.arange(60, 110, step=5)
+        X_train, X_test = [], []
+        for j in selected_slices:
+            if j < 100:
+                X_train.append(X[i, :, :, j])
+            else:
+                X_test.append(X[i, :, :, j])
+
+    X_train = np.array(X_train).astype(np.uint16)
+    X_test = np.array(X_test).astype(np.uint16)
+    labels = labels[:9]
     num_channels = 1
     activation = 'relu'
     final_activation = 'sigmoid'
@@ -287,13 +296,13 @@ def seg_net(train_input_path, labels):
     dropout = 0.1
     loss = 'categorical_crossentropy'
     metrics = 'accuracy'
-    model = get_wnetseg(608, num_channels, activation, final_activation,
+    model = get_wnetseg(image_x_size, image_y_size, num_channels, activation, final_activation,
                         optimizer, lr, dropout, loss, metrics)
 
     model.fit(
         X_train,
         labels,
-        epochs=40,
+        epochs=1,
         batch_size=2,
         validation_split=0.2,
         callbacks=[
