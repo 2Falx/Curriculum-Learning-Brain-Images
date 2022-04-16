@@ -1,33 +1,42 @@
-from keras.layers import Input, Conv2D, Activation, BatchNormalization, GlobalAveragePooling2D, Dense, Dropout, GlobalMaxPooling2D
-from keras.layers.merge import add
-from keras.activations import relu, softmax, sigmoid
 from keras.models import Model
-from keras import regularizers
-import tensorflow as tf
-from tensorflow.keras.applications.vgg16 import VGG16
+from keras.layers import Input
+from keras.layers import Conv2D
+from keras.layers import MaxPooling2D, Flatten, Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+
+
+# function for creating a vgg block
+def vgg_block(layer_in, n_filters, n_conv):
+    for _ in range(n_conv):
+        layer_in = Conv2D(n_filters, (3, 3), padding='same', activation='relu')(layer_in)
+        Dropout(0.1)(layer_in)
+    layer_in = MaxPooling2D((2, 2), strides=(2, 2))(layer_in)
+    return layer_in
+
+
+def vgg_block1(layer_in, n_filters, n_conv):
+    for _ in range(n_conv):
+        layer_in = Conv2D(n_filters, (3, 3), padding='same', activation='relu')(layer_in)
+        Dropout(0.1)(layer_in)
+    return layer_in
 
 
 def get_vgg(patch_size):
-    # create the base pre-trained model
-    base_model = VGG16(include_top=False, weights='imagenet', input_shape=(patch_size, patch_size, 3))
-    # we add a global average pooling layer
-    x = base_model.output
-    x = GlobalAveragePooling2D()(x)
-    # add also a fully-connected layer
-    x = Dense(1024, activation='relu')(x)
-    # we have 2 classes only, so:
-    predictions = Dense(1, activation='sigmoid')(x)
-
-    # this is the model we will train
-    model = Model(inputs=base_model.input, outputs=predictions)
-
-    # we freeze all the convolutional layers of ResNet50
-    for layer in base_model.layers:
-        layer.trainable = False
-
-    # finally we compile the model
-    model.compile(optimizer='adam',
-                  loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
-                  metrics=['accuracy'])
-
+    # define model input
+    visible = Input(shape=(patch_size, patch_size, 1))
+    # add vgg module
+    layer = vgg_block(visible, 64, 2)
+    # add vgg module
+    layer = vgg_block(layer, 128, 2)
+    # add vgg module
+    layer = vgg_block1(layer, 256, 4)
+    final_conv = Flatten()(layer)
+    final_conv = Dense(128, activation='relu', kernel_initializer='he_uniform')(final_conv)
+    final_conv = Dense(1, activation='sigmoid')(final_conv)
+    # create model
+    model = Model(inputs=visible, outputs=final_conv)
+    model.compile(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=['accuracy'])
+    print('VGG-net compiled.')
+    # summarize model
+    model.summary()
     return model

@@ -1,30 +1,69 @@
-from keras.layers import GlobalAveragePooling2D, Dense
+from keras.layers import Input, Conv2D, Activation, BatchNormalization, GlobalAveragePooling2D, Dense, Dropout
+from keras.layers.merge import add
+from keras.activations import relu, sigmoid
 from keras.models import Model
-import tensorflow as tf
-from tensorflow.keras.applications.resnet50 import ResNet50
+from keras import regularizers
+
+
+def block(n_output, upscale=False):
+    # n_output: number of feature maps in the block
+    # upscale: should we use the 1x1 conv2d mapping for shortcut or not
+
+    # keras functional api: return the function of type
+    # Tensor -> Tensor
+    def f(x):
+        # H_l(x):
+        # first pre-activation
+        h = BatchNormalization()(x)
+        h = Activation(relu)(h)
+        # first convolution
+        h = Conv2D(kernel_size=3, filters=n_output, strides=1,
+                   padding='same', kernel_regularizer=regularizers.l2(0.01))(h)
+        # second pre-activation
+        h = BatchNormalization()(x)
+        h = Activation(relu)(h)
+        # second convolution
+        h = Conv2D(kernel_size=3, filters=n_output, strides=1,
+                   padding='same', kernel_regularizer=regularizers.l2(0.01))(h)
+        # f(x):
+        if upscale:
+            # 1x1 conv2d
+            f = Conv2D(kernel_size=1, filters=n_output,
+                       strides=1, padding='same')(x)
+        else:
+            # identity
+            f = x
+        # F_l(x) = f(x) + H_l(x):
+        return add([f, h])
+    return f
 
 
 def get_resnet(patch_size):
-    # create the base pre-trained model
-    base_model = ResNet50(include_top=False, weights='imagenet', input_shape=(patch_size, patch_size, 3))
-    # we add a global average pooling layer
-    x = base_model.output
+    # input tensor is the grayscale patch
+    input_tensor = Input((patch_size, patch_size, 1))
+    # first conv2d with post-activation to transform the input data to some reasonable form
+    x = Conv2D(kernel_size=3, filters=16, strides=1, padding='same',
+               kernel_regularizer=regularizers.l2(0.01))(input_tensor)
+    x = BatchNormalization()(x)
+    x = Activation(relu)(x)
+    # F_1
+    x = block(16)(x)
+    # F_2
+    x = block(16)(x)
+    # last activation of the entire network's output
+    x = BatchNormalization()(x)
+    x = Activation(relu)(x)
+    # average pooling across the channels
+    # 28x28x48 -> 1x48
     x = GlobalAveragePooling2D()(x)
-    # add also a fully-connected layer
-    x = Dense(1024, activation='relu')(x)
-    # we have 2 classes only, so:
-    predictions = Dense(1, activation='sigmoid')(x)
-
-    # this is the model we will train
-    model = Model(inputs=base_model.input, outputs=predictions)
-
-    # we freeze all the convolutional layers of ResNet50
-    for layer in base_model.layers:
-        layer.trainable = False
-
-    # finally we compile the model
-    model.compile(optimizer='adam',
-                  loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
-                  metrics=['accuracy'])
-
+    # dropout for more robust learning
+    x = Dropout(0.1)(x)
+    # last softmax layer
+    x = Dense(units=1, kernel_regularizer=regularizers.l2(0.01))(x)
+    x = Activation(sigmoid)(x)
+    model = Model(inputs=input_tensor, outputs=x)
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    print('Tiny Resnet compiled.')
+    # summarize model
+    model.summary()
     return model
