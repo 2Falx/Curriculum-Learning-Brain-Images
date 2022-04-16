@@ -21,9 +21,10 @@ def main(patch_size):
 
     for i, j in enumerate(input_images):
         img_mat = load_nifti_mat_from_file(masked_images_path + j)
+        img_mat_with_grid = img_mat.copy()
         # Squashes input between 0.0 and 1.0
-        img_mat -= img_mat.min()
-        img_mat /= img_mat.max()
+        img_mat_with_grid -= img_mat.min()
+        img_mat_with_grid /= img_mat.max()
         # Compute image dimensions once since all images have the same dimensions and perform a check on the patch size
         if i == 0:
             label_mat = load_nifti_mat_from_file(masked_images_path + label_images[i])

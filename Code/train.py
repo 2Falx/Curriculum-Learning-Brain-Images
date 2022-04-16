@@ -1,5 +1,10 @@
 import keras.callbacks
-import nets
+import numpy as np
+
+from nets.pnet import *
+from nets.resnet import *
+from nets.vgg import *
+from nets.wnetseg import *
 from utils.network_train import *
 from utils.unsupervised import *
 from tensorflow.keras.optimizers import Adam
@@ -8,6 +13,7 @@ from reconstructor import *
 import reconstructor_AL
 from scipy.stats import entropy
 import cv2
+from sklearn.preprocessing import LabelBinarizer
 
 
 def train_whole_dataset(train_patches_path, test_patches_path, input_images_shape, method):
@@ -24,28 +30,23 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
     x_patches_per_image = int(input_images_shape[0] / patch_size)
     y_patches_per_image = int(input_images_shape[1] / patch_size)
 
-    # Make images appear as 3-channels images to use architecture like VGG, etc.
-    # TODO: fix it, it changes the patches' appearance
-    # X_train = np.repeat(X[..., np.newaxis], 3, -1)
-    # X_test = np.repeat(X_test[..., np.newaxis], 3, -1)
-
     # NOTE: training the whole dataset with the classification network was done to assess performances and comparing
     #       them with active learning. Here we are simulating the case where we have all the labels thanks to the
     #       oracle (human expert). So, if you just want to exploit that annotations (at patch level) and passing them
     #       to the K-means or to Canny methods, you can skip the following CNN.
 
-    # Choose the model you want
-    model = nets.pnet.get_pnetcls(patch_size)
-    # model = nets.resnet.get_resnet(patch_size)
-    # model = nets.vgg.get_vgg(patch_size)
-    #
+    # Choose the model
+    # model = get_pnetcls(patch_size)
+    # model = get_resnet(patch_size)
+    model = get_vgg(patch_size)
+
     print('Training model...')
     history = model.fit(
         X_train,
         y_train,
-        epochs=2,
-        batch_size=32,
-        validation_split=0.2,
+        epochs=10,
+        batch_size=64,
+        validation_split=0.3,
         callbacks=[
             keras.callbacks.ModelCheckpoint(
                 "FullModelCheckpoint.h5", verbose=1, save_best_only=True
@@ -62,6 +63,9 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
 
     y_pred = model.predict(X_test)
     y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
+
+    # Save predictions in a .npy , check them after training with np.load
+    np.save("predictions", y_pred_rounded)
 
     accuracy_score_test = accuracy_score(y_test, y_pred_rounded)
     precision_score_test = precision_score(y_test, y_pred_rounded)
@@ -116,9 +120,10 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
     # Creating lists for storing metrics
     losses, val_losses, accuracies, val_accuracies = [], [], [], []
 
-    # model = get_pnetcls(patch_size)
+    # Choose the model
+    model = get_pnetcls(patch_size)
     # model = get_resnet(patch_size)
-    model = get_vgg(patch_size)
+    # model = get_vgg(patch_size)
 
     print("Starting to train... ")
     history = model.fit(

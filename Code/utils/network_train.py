@@ -4,7 +4,7 @@ This file contains useful functions for the networks training steps
 import numpy as np
 import imageio as io
 import matplotlib.pyplot as plt
-from Code.utils.preprocessing import get_all_files
+from utils.preprocessing import get_all_files
 
 
 def append_history(losses, val_losses, accuracies, val_accuracies, history):
