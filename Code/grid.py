@@ -8,8 +8,8 @@ from utils.preprocessing import *
 
 def main(patch_size):
     masked_images_path = "images/skull_stripped_images/"  # images of brain without the skull
-    patches_train_path = "images/patched_images/train/"
-    patches_test_path = "images/patched_images/test/"
+    patches_train_path = "images/patched_images/train/img/"
+    patches_test_path = "images/patched_images/test/img/"
     grid_path = "images/images_with_grid/"
     input_images = [item for item in os.listdir(masked_images_path) if re.search("_img", item)]
     label_images = [item for item in os.listdir(masked_images_path) if re.search("_label", item)]
@@ -17,6 +17,8 @@ def main(patch_size):
     # Create folders if they don't exist already
     Path(patches_train_path).mkdir(parents=True, exist_ok=True)
     Path(patches_test_path).mkdir(parents=True, exist_ok=True)
+    Path(patches_train_path[:-4] + "labels/").mkdir(parents=True, exist_ok=True)  # this will contain clustered patches
+    Path(patches_test_path[:-4] + "labels/").mkdir(parents=True, exist_ok=True)
     Path(grid_path).mkdir(parents=True, exist_ok=True)
 
     for i, j in enumerate(input_images):

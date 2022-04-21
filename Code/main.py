@@ -3,19 +3,22 @@ This file will run the classification network with Active Learning or without it
 It also performs clustering with either Canny or K-means and it runs the final segmentation network.
 """
 import train
+import train_wnetseg
 
 
 def main():
-    images_path = "images/skull_stripped_images/"
-    train_patches_path = "images/patched_images/train/"
-    test_patches_path = "images/patched_images/test/"
+    train_patches_path = "images/patched_images/train/img/"
+    test_patches_path = "images/patched_images/test/img/"
+    train_patches_labels_path = "images/patched_images/train/labels/"
+    test_patches_labels_path = "images/patched_images/test/labels/"
     input_images_shape = (576, 768, 136)  # NIfTI images
 
     # Get the labels for segmentation through Canny or K-means
-    labels = train.train_whole_dataset(train_patches_path, test_patches_path, input_images_shape, method="kmeans")
+    # labels = train.train_whole_dataset(train_patches_path, test_patches_path, input_images_shape, method="kmeans")
     # labels = train.train_active_learning(train_patches_path, test_patches_path, input_images_shape,
     #                                      num_iterations=0, metrics="least_confidence", method="kmeans")
-    train.seg_net(images_path, labels)
+    train_wnetseg.train(train_patches_path, train_patches_labels_path)
+    # TODO: return the model from wnetseg and test it on test images (possibly take them full shape and create patches on the flight)
 
     print("End")
 

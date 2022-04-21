@@ -34,7 +34,7 @@ def up_concat_block2(m, concat_channels1, concat_channels2, pool_size, concat_ax
     return n
 
 
-def get_wnetseg(x_size, y_size, num_channels, activation, final_activation, optimizer, learning_rate, dropout,
+def get_wnetseg(patch_size, num_channels, activation, final_activation, optimizer, learning_rate, dropout,
                 loss_function, metrics=None,
                 kernel_size=(3, 3), pool_size=(2, 2), strides=(1, 1), num_kernels=None, concat_axis=3,
                 data_format='channels_last', padding='same', bn=False):
@@ -47,7 +47,7 @@ def get_wnetseg(x_size, y_size, num_channels, activation, final_activation, opti
         num_kernels = [64, 128, 256, 512, 1024]
 
     # specify the input shape
-    inputs = Input((x_size, y_size, num_channels))
+    inputs = Input((patch_size, patch_size, num_channels))
     # The first U-net
     # DOWN-SAMPLING PART (left side of the first U-net)
     # layers on each level: convolution2d -> dropout -> convolution2d -> max-pooling

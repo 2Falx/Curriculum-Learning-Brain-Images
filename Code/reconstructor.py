@@ -42,16 +42,16 @@ def reconstruct(clustered_patches, file_names, x_patches_per_image, y_patches_pe
                 toAttachV = np.vstack((toAttachV, toAttachH))
         final_images[iteration] = toAttachV
 
-    for i, image in enumerate(final_images):
-        original_image = nibabel.load("images/skull_stripped_images/brain2_img.nii").get_fdata()[:, :, 60 + 5 * i]
-        label = nibabel.load("images/skull_stripped_images/brain2_label.nii").get_fdata()[:, :, 60 + 5 * i]
-        fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15, 8))
-        axs[0].imshow(original_image, "gray")
-        axs[0].set_title("Original image")
-        axs[1].imshow(image, "gray")
-        axs[1].set_title("Reconstructed image")
-        axs[2].imshow(label, "gray")
-        axs[2].set_title("Ground truth")
-        plt.show()
+    # for i, image in enumerate(final_images):
+    #     original_image = nibabel.load("images/skull_stripped_images/brain2_img.nii").get_fdata()[:, :, 60 + 5 * i]
+    #     label = nibabel.load("images/skull_stripped_images/brain2_label.nii").get_fdata()[:, :, 60 + 5 * i]
+    #     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15, 8))
+    #     axs[0].imshow(original_image, "gray")
+    #     axs[0].set_title("Original image")
+    #     axs[1].imshow(image, "gray")
+    #     axs[1].set_title("Reconstructed image")
+    #     axs[2].imshow(label, "gray")
+    #     axs[2].set_title("Ground truth")
+    #     plt.show()
 
     return final_images

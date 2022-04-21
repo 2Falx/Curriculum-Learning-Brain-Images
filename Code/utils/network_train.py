@@ -5,6 +5,7 @@ import numpy as np
 import imageio as io
 import matplotlib.pyplot as plt
 from utils.preprocessing import get_all_files
+from keras import backend as K
 
 
 def append_history(losses, val_losses, accuracies, val_accuracies, history):
@@ -72,7 +73,8 @@ def get_X_y_file_names(path):
     y = np.full((len(X),), 0)
     for i, current_patch_path in enumerate(file_list):
         X[i] = np.load(current_patch_path)
-        if "no_vessel" not in current_patch_path:  # it means there is a vessel in the current patch
+        if "no_vessel" not in current_patch_path \
+                and "_lab" not in current_patch_path:
             y[i] = 1
     return X, y, file_list
 
@@ -185,3 +187,27 @@ def shuffle_and_split(X, y, file_names, X_test_final, train_size):
     # X_test_final -= train_mean
     # X_test_final /= train_std
     return X_train, X_test, y_train, y_test, file_names_train, file_names_test, X_test_final
+
+
+def dice_coef(y_true, y_pred, smooth=0):
+    """
+    Computes the DICE coefficient, also known as F1-score or F-measure.
+    :param y_true: Ground truth target values.
+    :param y_pred: Predicted targets returned by a model.
+    :param smooth: Smoothing factor.
+    :return: DICE coefficient of the positive class in binary classification.
+    """
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    intersection = K.sum(y_true_f * y_pred_f)
+    return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+
+
+def dice_coef_loss(y_true, y_pred):
+    """
+    Computes the DICE loss function value.
+    :param y_true: Ground truth target values.
+    :param y_pred: Predicted targets returned by a model.
+    :return: Negative value of DICE coefficient of the positive class in binary classification.
+    """
+    return -dice_coef(y_true, y_pred, 1)
