@@ -8,6 +8,7 @@ from utils.network_train import *
 from utils.unsupervised import *
 from tensorflow.keras.optimizers import Adam
 from keras.preprocessing.image import ImageDataGenerator
+from pathlib import Path
 
 
 def train(patches_path, patches_label_path):
@@ -21,6 +22,12 @@ def train(patches_path, patches_label_path):
     X_train = np.array(X_train)
     y_train = np.array(y_train)
 
+    # Normalization
+    mean_train = np.mean(X_train)
+    std_train = np.std(y_train)
+    X_train -= mean_train
+    X_train /= std_train
+
     # Set hyperparameters
     batch_size = 64
     num_channels = 1
@@ -29,7 +36,7 @@ def train(patches_path, patches_label_path):
     optimizer = Adam
     lr = 1e-4
     dropout = 0.1
-    num_epochs = 10
+    num_epochs = 1
     loss = dice_coef_loss
     metrics = [dice_coef, 'accuracy']
 
@@ -75,7 +82,32 @@ def train(patches_path, patches_label_path):
     model.fit(train_generator,
               steps_per_epoch=factor_train_samples * len(X_train) // batch_size,
               epochs=num_epochs,
-              verbose=2, shuffle=True)
+              verbose=2,
+              shuffle=True)
     duration_train = int(time.time() - start_train)
     print('training took:', (duration_train // 3600) % 60, 'hours', (duration_train // 60) % 60,
           'minutes', duration_train % 60, 'seconds')
+
+    return model, mean_train, std_train
+
+
+def predict_test_set(test_patches_path, model, mean_train, std_train):
+    # TODO: use true test patches labels
+    patches_list = get_all_files(test_patches_path)
+    X_test = []
+    for brain_patch in patches_list:
+        X_test.append(np.load(brain_patch))
+    X_test = np.array(X_test)
+
+    # Add 4th dimension
+    X_test = np.expand_dims(X_test, axis=3)
+
+    # Normalization using train mean and std
+    X_test -= mean_train
+    X_test /= std_train
+
+    y_pred = model.predict(X_test)
+
+    Path("predictions/").mkdir(parents=True, exist_ok=True)
+    np.save("predictions/test_predictions", y_pred)
+
