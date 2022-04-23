@@ -2,25 +2,26 @@
 This is the script for training the wnetseg model.
 """
 import time
-from utils.preprocessing import get_all_files
+from utils.preprocessing import get_all_files, compute_number_of_train_images
 from nets.wnetseg import *
 from utils.network_train import *
-from utils.unsupervised import *
 from tensorflow.keras.optimizers import Adam
 from keras.preprocessing.image import ImageDataGenerator
 from pathlib import Path
+from reconstructor import *
 
 
 def train(patches_path, patches_label_path):
     patches_list = get_all_files(patches_path)
     patches_labels_list = get_all_files(patches_label_path)
-    patch_size = 64
     X_train, y_train = [], []
     for brain_patch, brain_patch_label in zip(patches_list, patches_labels_list):
         X_train.append(np.load(brain_patch))
         y_train.append(np.load(brain_patch_label))
     X_train = np.array(X_train)
     y_train = np.array(y_train)
+
+    patch_size = X_train[0].shape[0]
 
     # Normalization
     mean_train = np.mean(X_train)
@@ -36,7 +37,7 @@ def train(patches_path, patches_label_path):
     optimizer = Adam
     lr = 1e-4
     dropout = 0.1
-    num_epochs = 1
+    num_epochs = 21
     loss = dice_coef_loss
     metrics = [dice_coef, 'accuracy']
 
@@ -106,8 +107,17 @@ def predict_test_set(test_patches_path, model, mean_train, std_train):
     X_test -= mean_train
     X_test /= std_train
 
-    y_pred = model.predict(X_test)
+    y_pred = model.predict(X_test).squeeze()
+
+    file_names_test = get_all_files(test_patches_path)
+    tot_images = compute_number_of_train_images(test_patches_path)
+    # TODO: automize it
+    x_patches_per_image = 9
+    y_patches_per_image = 12
+
+    # Reconstruct full images by patches segmentation predictions
+    reconstructed_images = reconstruct(y_pred, file_names_test, tot_images,
+                                       x_patches_per_image, y_patches_per_image, test_flag=True)
 
     Path("predictions/").mkdir(parents=True, exist_ok=True)
-    np.save("predictions/test_predictions", y_pred)
-
+    np.save("predictions/test_predictions", reconstructed_images)

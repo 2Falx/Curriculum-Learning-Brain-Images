@@ -20,7 +20,6 @@ def main():
     model, mean_train, std_train = train_wnetseg.train(train_patches_path, train_patches_labels_path)
     # TODO: return the model from wnetseg and test it on test images (possibly take them full shape and create patches on the flight)
     train_wnetseg.predict_test_set(test_patches_path, model, mean_train, std_train)
-
     print("End")
 
 

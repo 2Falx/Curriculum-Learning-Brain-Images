@@ -76,3 +76,13 @@ def create_and_save_image_as_ndarray(image, path_target):
     """
     np.save(path_target, image)
 
+
+def compute_number_of_train_images(path):
+    """
+    Compute the number of images in the given patches' folder.
+    :param path: String, path of the patches' folder.
+    :return: Integer, number of images in the specified folder.
+    """
+    file_names = get_all_files(path)
+    images_ids = np.array([patch.split("_")[-2] for patch in file_names])
+    return np.unique(images_ids).size
