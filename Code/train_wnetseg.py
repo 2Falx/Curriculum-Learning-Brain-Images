@@ -12,6 +12,14 @@ from reconstructor import *
 
 
 def train(patches_path, patches_label_path):
+    """
+    Train the segmentation network.
+    :param patches_path: String, path of input patches.
+    :param patches_label_path: String, path of input patches' labels.
+    :return: Trained model.
+             Train mean.
+             Train standard deviation.
+    """
     patches_list = get_all_files(patches_path)
     patches_labels_list = get_all_files(patches_label_path)
     X_train, y_train = [], []
@@ -37,7 +45,7 @@ def train(patches_path, patches_label_path):
     optimizer = Adam
     lr = 1e-4
     dropout = 0.1
-    num_epochs = 21
+    num_epochs = 40
     loss = dice_coef_loss
     metrics = [dice_coef, 'accuracy']
 
@@ -93,6 +101,13 @@ def train(patches_path, patches_label_path):
 
 
 def predict_test_set(test_patches_path, model, mean_train, std_train):
+    """
+    Make predictions on test set.
+    :param test_patches_path: String, path of input test patches.
+    :param model: Keras model, trained segmentation model.
+    :param mean_train: Float, mean of the train set.
+    :param std_train: Float, standard deviation of the train set.
+    """
     # TODO: use true test patches labels
     patches_list = get_all_files(test_patches_path)
     X_test = []
@@ -112,8 +127,8 @@ def predict_test_set(test_patches_path, model, mean_train, std_train):
     file_names_test = get_all_files(test_patches_path)
     tot_images = compute_number_of_train_images(test_patches_path)
     # TODO: automize it
-    x_patches_per_image = 9
-    y_patches_per_image = 12
+    x_patches_per_image = 9 * 2
+    y_patches_per_image = 12 * 2
 
     # Reconstruct full images by patches segmentation predictions
     reconstructed_images = reconstruct(y_pred, file_names_test, tot_images,
