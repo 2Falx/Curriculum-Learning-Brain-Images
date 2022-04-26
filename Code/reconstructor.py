@@ -7,7 +7,16 @@ import matplotlib.pyplot as plt
 
 
 def reconstruct(clustered_patches, file_names, tot_images, x_patches_per_image, y_patches_per_image, test_flag=False):
-
+    """
+    Reconstruct a full 2D image from its patches.
+    :param clustered_patches: Numpy array, input patches.
+    :param file_names: Numpy array, input file names list.
+    :param tot_images: Integer, number of total 2D images.
+    :param x_patches_per_image: Integer, number of patches along x-axis of the 2D image.
+    :param y_patches_per_image: Integer, number of patches along y-axis of the 2D image.
+    :param test_flag: Boolean, optional, adjust the reconstructor in case of train or test.
+    :return: List of reconstructed images.
+    """
     # Create a numpy array which will contain ordered patches
     # Since full black patches were discarded we initialize this array with full zeros (black)
     patch_size = clustered_patches.shape[-1]
