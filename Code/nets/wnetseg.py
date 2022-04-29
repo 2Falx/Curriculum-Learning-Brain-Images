@@ -1,3 +1,6 @@
+"""
+This file contains the segmentation network.
+"""
 from keras.models import Model
 from keras.layers import Dropout, Convolution2D, MaxPooling2D, Input, UpSampling2D, concatenate, BatchNormalization
 
