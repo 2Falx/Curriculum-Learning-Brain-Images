@@ -1,3 +1,6 @@
+"""
+This file contains the CNN which will classify image patches.
+"""
 from keras.models import Model
 from keras.layers import Input
 from keras.layers import Conv2D
