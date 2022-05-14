@@ -89,8 +89,8 @@ def main(patch_size):
                             create_and_save_image_as_ndarray(current_patch_label, patches_label_train_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]', '', j)}")
 
         # Save the NIfTI image and label with grid
-        create_and_save_nifti(img_with_grid, grid_path + j)
-        create_and_save_nifti(label_with_grid, grid_path + j[:-7] + "label.nii")
+        # create_and_save_nifti(img_with_grid, grid_path + j)
+        # create_and_save_nifti(label_with_grid, grid_path + j[:-7] + "label.nii")
         print("Patches generated")
 
 

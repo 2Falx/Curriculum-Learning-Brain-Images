@@ -45,22 +45,22 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
     #       to the K-means or to Canny methods, you can skip the following CNN.
 
     # Choose the model
-    model = get_pnetcls(patch_size)
+    # model = get_pnetcls(patch_size)
     # model = get_resnet(patch_size)
-    # model = get_vgg(patch_size)
+    model = get_vgg(patch_size)
 
     print('Training model...')
     history = model.fit(
         X_train,
         y_train,
-        epochs=10,
+        epochs=20,
         batch_size=64,
         validation_split=0.2,
-        callbacks=[
-            keras.callbacks.ModelCheckpoint(
-                "FullModelCheckpoint.h5", verbose=1, save_best_only=True
-            ),
-        ],
+        # callbacks=[
+        #     keras.callbacks.ModelCheckpoint(
+        #         "FullModelCheckpoint.h5", verbose=1, save_best_only=True
+        #     ),
+        # ],
     )
 
     plot_history(
@@ -117,6 +117,7 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
 def train_active_learning(train_patches_path, test_patches_path, input_images_shape, num_iterations, metrics, method):
     np.random.seed(42)
     X, y, file_names = get_X_y_file_names(train_patches_path)
+    X, y, file_names = shuffle_data(X, y, file_names)
     # X, y = random_under_sampling(X, y)
     # We start with a 15% of the samples
     X_test_final, y_test_final, _ = get_X_y_file_names(test_patches_path)
@@ -125,10 +126,11 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
     patch_size = X[0].shape[0]
     x_patches_per_image = int(input_images_shape[0] / patch_size)
     y_patches_per_image = int(input_images_shape[1] / patch_size)
+    tot_images = compute_number_of_train_images(train_patches_path)
 
-    # Make images appear as 3-channels images to use architecture like VGG, etc.
-    X = np.repeat(X[..., np.newaxis], 3, -1)
-    X_test_final = np.repeat(X_test_final[..., np.newaxis], 3, -1)
+    # # Make images appear as 3-channels images to use architecture like VGG, etc.
+    # X = np.repeat(X[..., np.newaxis], 3, -1)
+    # X_test_final = np.repeat(X_test_final[..., np.newaxis], 3, -1)
 
     X_train, X_test, y_train, y_test, \
         file_names_train, file_names_test, X_test_final = shuffle_and_split(X, y, file_names, X_test_final,
@@ -137,21 +139,21 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
     losses, val_losses, accuracies, val_accuracies = [], [], [], []
 
     # Choose the model
-    model = get_pnetcls(patch_size)
+    # model = get_pnetcls(patch_size)
     # model = get_resnet(patch_size)
-    # model = get_vgg(patch_size)
+    model = get_vgg(patch_size)
 
     print("Starting to train... ")
     history = model.fit(
         X_train,
         y_train,
-        epochs=2,
-        batch_size=32,
+        epochs=20,
+        batch_size=64,
         validation_split=0.2,
-        callbacks=[keras.callbacks.ModelCheckpoint(
-            "ALModelCheckpoint.h5", verbose=1, save_best_only=True
-        ),
-        ],
+        # callbacks=[keras.callbacks.ModelCheckpoint(
+        #     "ALModelCheckpoint.h5", verbose=1, save_best_only=True
+        # ),
+        # ],
     )
 
     losses, val_losses, accuracies, val_accuracies = append_history(
@@ -188,12 +190,14 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
                                      :count_uncertain_values]
 
         print(f"X_train.shape: {X_train.shape}")
-        print(f"X_test[most_uncertain_indices, :, :, :].shape: {X_test[most_uncertain_indices, :, :, :].shape}")
+        print(f"X_test[most_uncertain_indices, :, :, :].shape: {X_test[most_uncertain_indices, :, :].shape}")
 
         # Reconstruct images from patches, highlighting patches selected by active learning and patches of actual train
         # take highlighted elements to show uncertain patches
         X_test_highlighted = X_test.copy()  # we will highlight only patches most uncertain
         X_train_highlighted = X_train.copy()
+        X_train_highlighted = np.repeat(X_train_highlighted[..., np.newaxis], 3, -1)
+        X_test_highlighted = np.repeat(X_test_highlighted[..., np.newaxis], 3, -1)
         for i in range(len(X_train_highlighted)):  # green squares for patches of train
             X_train_highlighted[i, 0, :, 1] = 255
             X_train_highlighted[i, len(X_train_highlighted[i]) - 1, :, 1] = 255
@@ -201,19 +205,20 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
             X_train_highlighted[i, :, len(X_train_highlighted[i]) - 1, 1] = 255
 
         for i in most_uncertain_indices:
-            X_test_highlighted[i, 0, :, 2] = 255  # blue squares for AL patches
-            X_test_highlighted[i, len(X_test_highlighted[i]) - 1, :, 2] = 255
-            X_test_highlighted[i, :, 0, 2] = 255
-            X_test_highlighted[i, :, len(X_test_highlighted[i]) - 1, 2] = 255
+            X_test_highlighted[i, 0, :, 0] = 255  # red squares for AL patches
+            X_test_highlighted[i, len(X_test_highlighted[i]) - 1, :, 0] = 255
+            X_test_highlighted[i, :, 0, 0] = 255
+            X_test_highlighted[i, :, len(X_test_highlighted[i]) - 1, 0] = 255
 
         X_check = np.concatenate((X_train_highlighted, X_test_highlighted))
         file_names_check = np.concatenate((file_names_train, file_names_test))
         # reconstruct segmented image by patches
-        reconstructor_AL.reconstruct(X_check, file_names_check, iteration)
+        reconstructor_AL.reconstruct(X_check, file_names_check, tot_images,
+                                     x_patches_per_image, y_patches_per_image, iteration)
 
         # Get most uncertain values from test and add them into the train
-        X_train = np.vstack((X_train, X_test[most_uncertain_indices, :, :, :]))
-        y_train = np.vstack((y_train, y_test[most_uncertain_indices, :]))
+        X_train = np.vstack((X_train, X_test[most_uncertain_indices, :, :]))
+        y_train = np.hstack((y_train, y_test[most_uncertain_indices]))
         file_names_train = np.concatenate((file_names_train, file_names_test[most_uncertain_indices]))
 
         # remove most uncertain values from test
@@ -229,13 +234,13 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
         history = model.fit(
             X_train,
             y_train,
-            epochs=2,
-            batch_size=32,
+            epochs=20,
+            batch_size=64,
             validation_split=0.2,
-            callbacks=[keras.callbacks.ModelCheckpoint(
-                "ALModelCheckpoint.h5", verbose=1, save_best_only=True
-            ),
-            ],
+            # callbacks=[keras.callbacks.ModelCheckpoint(
+            #     "ALModelCheckpoint.h5", verbose=1, save_best_only=True
+            # ),
+            # ],
         )
 
         losses, val_losses, accuracies, val_accuracies = append_history(
@@ -245,7 +250,7 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
     # End of AL iterations
 
     # Loading the best model from the training loop
-    model = keras.models.load_model("ALModelCheckpoint.h5")
+    # model = keras.models.load_model("ALModelCheckpoint.h5")
 
     y_pred = model.predict(X_test_final)
     y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
@@ -267,19 +272,26 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
         X_test).squeeze()))  # we generate predictions on the whole dataset -> we will use them in kmeans/canny
     file_names = np.concatenate((file_names_train, file_names_test))
 
-    # Choose either K-means or canny method to get a first approximation of pixel-level labels.
+    # # Path to save labels generated by an unsupervised algorithm
+    # path_lab = "images/patched_images/train/predlabels/"
+    # Choose either kmeans or canny method to get a first approximation of pixel-level labels.
     if method == "kmeans":
-        clustered_images = []
-        for index, X_train_sample in enumerate(X):
-            clustered_images.append(kmeans(X_train_sample, y[index]))
-        images_to_rec = np.array(clustered_images)
+        clustered_patches = []
+        for index, X_train_sample in enumerate(X_train):
+            clustered_patch = kmeans(X_train_sample, y_train[index], viz=True)
+            # np.save(path_lab + file_names_train[index].split("/")[-1], clustered_patch)
+            clustered_patches.append(clustered_patch)
+        images_to_rec = np.array(clustered_patches)
     else:
-        canny_images = []
-        for index, X_train_sample in enumerate(X):
-            canny_images.append(canny(X_train_sample, y[index]))
-        images_to_rec = np.array(canny_images)
+        canny_patches = []
+        for index, X_train_sample in enumerate(X_train):
+            canny_patch = canny(X_train_sample, y_train[index], viz=False)
+            # np.save(path_lab + file_names_train[index].split("/")[-1], canny_patch)
+            canny_patches.append(canny_patch)
+        images_to_rec = np.array(canny_patches)
 
-    # reconstruct segmented image by patches
-    reconstructed_images = reconstruct(images_to_rec, file_names, x_patches_per_image, y_patches_per_image)
+    # Reconstruct segmented image by patches
+    reconstructed_images = reconstruct(images_to_rec, file_names_train, tot_images,
+                                       x_patches_per_image, y_patches_per_image)
     return reconstructed_images
 

@@ -83,6 +83,6 @@ def compute_number_of_train_images(path):
     :param path: String, path of the patches' folder.
     :return: Integer, number of images in the specified folder.
     """
-    file_names = get_all_files(path)
+    file_names = get_all_files(path)[1:]  # ignore desktop.ini
     images_ids = np.array([patch.split("_")[-2] for patch in file_names])
     return np.unique(images_ids).size

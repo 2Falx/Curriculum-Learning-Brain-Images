@@ -67,7 +67,7 @@ def get_X_y_file_names(path):
              Numpy array, input labels.
              Numpy array, input file names.
     """
-    file_list = get_all_files(path)
+    file_list = get_all_files(path)[1:]  # Ignore desktop.ini (shared project on Drive)
     patch_size = np.load(file_list[0]).shape[0]
     X = np.empty((len(file_list), patch_size, patch_size))
     y = np.full((len(X),), 0)
@@ -76,7 +76,7 @@ def get_X_y_file_names(path):
         if "no_vessel" not in current_patch_path \
                 and "_lab" not in current_patch_path:
             y[i] = 1
-    return X, y, file_list
+    return X.astype(np.uint64), y.astype(np.uint64), file_list
 
 
 def random_under_sampling(X, y):
