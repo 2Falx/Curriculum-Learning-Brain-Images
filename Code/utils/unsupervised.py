@@ -66,13 +66,6 @@ def kmeans(patch_image, prediction, viz=False):
         result_patch[:, :] = 0  # mask it since it is no-vessel
         result_patch_final = result_patch
     # If you want to visualize set the function param to True
-    if prediction == "vessel" and viz:
-        fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(12, 8))
-        axs[0].imshow(patch_image, "gray")
-        axs[0].set_title("Original patch")
-        axs[1].imshow(result_patch_final, "gray")
-        axs[1].set_title("Segmentation")
-        plt.show()
 
     return result_patch_final
 

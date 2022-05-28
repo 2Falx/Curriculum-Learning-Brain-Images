@@ -53,7 +53,7 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
     history = model.fit(
         X_train,
         y_train,
-        epochs=20,
+        epochs=5,
         batch_size=64,
         validation_split=0.2,
         # callbacks=[
@@ -147,7 +147,7 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
     history = model.fit(
         X_train,
         y_train,
-        epochs=20,
+        epochs=5,
         batch_size=64,
         validation_split=0.2,
         # callbacks=[keras.callbacks.ModelCheckpoint(
@@ -234,7 +234,7 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
         history = model.fit(
             X_train,
             y_train,
-            epochs=20,
+            epochs=5,
             batch_size=64,
             validation_split=0.2,
             # callbacks=[keras.callbacks.ModelCheckpoint(
