@@ -3,10 +3,10 @@ This is the script for training the classification model.
 """
 import keras.callbacks
 from utils.preprocessing import get_all_files, load_nifti_mat_from_file, compute_number_of_train_images
-from nets.pnet import *
-from nets.resnet import *
-from nets.vgg import *
-from nets.wnetseg import *
+from Nets.pnet import *
+from Nets.resnet import *
+from Nets.vgg import *
+from Nets.wnetseg import *
 from utils.network_train import *
 from utils.unsupervised import *
 from tensorflow.keras.optimizers import Adam
@@ -53,7 +53,7 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
     history = model.fit(
         X_train,
         y_train,
-        epochs=5,
+        epochs=20,
         batch_size=64,
         validation_split=0.2,
         # callbacks=[
@@ -147,7 +147,7 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
     history = model.fit(
         X_train,
         y_train,
-        epochs=5,
+        epochs=20,
         batch_size=64,
         validation_split=0.2,
         # callbacks=[keras.callbacks.ModelCheckpoint(
@@ -234,7 +234,7 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
         history = model.fit(
             X_train,
             y_train,
-            epochs=5,
+            epochs=20,
             batch_size=64,
             validation_split=0.2,
             # callbacks=[keras.callbacks.ModelCheckpoint(
