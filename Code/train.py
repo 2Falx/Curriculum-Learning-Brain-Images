@@ -3,10 +3,10 @@ This is the script for training the classification model.
 """
 import keras.callbacks
 from utils.preprocessing import get_all_files, load_nifti_mat_from_file, compute_number_of_train_images
-from Nets.pnet import *
-from Nets.resnet import *
-from Nets.vgg import *
-from Nets.wnetseg import *
+from nets.pnet import *
+from nets.resnet import *
+from nets.vgg import *
+from nets.wnetseg import *
 from utils.network_train import *
 from utils.unsupervised import *
 from tensorflow.keras.optimizers import Adam
