@@ -1,5 +1,5 @@
 from pathlib import Path
-from utility import *
+from utils.preprocessing import *
 import matplotlib.pyplot as plt
 
 
@@ -53,7 +53,7 @@ def reconstruct(clustered_patches, file_names, tot_images, x_patches_per_image, 
         plt.show()
         break
 
-    # for i in range(len(final_images)):
-    #     Path(f'PatchesAL_brain/image_{i}').mkdir(parents=True, exist_ok=True)
-    #     savePath = f"PatchesAL_brain/image_{str(i)}/image_iteration_{str(iterationAL)}.jpg"
-    #     createAndSaveImage(final_images[i], savePath)
+    for i in range(len(final_images)):
+        Path(f'PatchesAL_brain/image_{i}').mkdir(parents=True, exist_ok=True)
+        savePath = f"PatchesAL_brain/image_{str(i)}/image_iteration_{str(iterationAL)}"
+        create_and_save_image_as_ndarray(final_images[i], savePath)

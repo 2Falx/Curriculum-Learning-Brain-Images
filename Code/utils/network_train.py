@@ -135,20 +135,22 @@ def normalize(X):
     return X, train_mean, train_std
 
 
-def shuffle_data(X, y, file_names):
+def shuffle_data(X, y, file_names=None):
     """
     Shuffle the input data keeping the mapping with the file names.
     :param X: Numpy array, input data.
     :param y: Numpy array, input labels.
-    :param file_names: Numpy array, input file names.
+    :param file_names: Numpy array, input file names, optional since not used in curriculum learning.
     :return: Numpy array, shuffled input data.
              Numpy array, shuffled input labels.
-             Numpy array, shuffled input file names.
+             Numpy array, shuffled input file names if not curriculum learning.
     """
     indices = np.array(range(len(y)))
     np.random.shuffle(indices)
-    file_names = np.array(file_names)
-    return X[indices], y[indices], file_names[indices]
+    if file_names:
+        file_names = np.array(file_names)
+        return X[indices], y[indices], file_names[indices]
+    return X[indices], y[indices]
 
 
 # used for active learning
