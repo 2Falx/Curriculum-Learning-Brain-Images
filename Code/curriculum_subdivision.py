@@ -11,9 +11,9 @@ import shutil
 
 
 def main():
-    patches_train_path = "images/patched_images/train/img/"
-    patches_label_train_path = "images/patched_images/train/labels/"
-    curriculum_train_path = "images/curriculum/"
+    patches_train_path = "../images/patched_images/train/img/"
+    patches_label_train_path = "../images/patched_images/train/labels/"
+    curriculum_train_path = "../images/curriculum/"
     input_images = [item for item in os.listdir(patches_train_path) if re.search("vessel", item)]
     label_images = [item for item in os.listdir(patches_label_train_path) if re.search("vessel", item)]
 
@@ -22,13 +22,15 @@ def main():
     # I compute the value of the mean of how big the vessels are
     vessels_dimensions = []  # Dimension of the vessels %
     non_vessels_black_dimension = []  # Dimension of black part of the patches
-
+    mean_of_values = []
+    var_of_values = []
     n_stages = 3
     stage_0, stage_1, stage_2 = [], [], []
     for i, el in enumerate(input_images):
         img_mat = np.load(patches_train_path + el)
         label_mat = np.load(patches_label_train_path + el)
-
+        # mean_of_values.append(img_mat.mean()) # compute and store all the pixel-wise mean from the images
+        # var_of_values.append(img_mat.var()) # compute and store all the pixel-wise variances from the images
         # If the patch contains a vessel
         if label_mat.max() != 0:
             mean_vessel = label_mat.mean()
@@ -43,12 +45,18 @@ def main():
         else:
             # Black patch out of the brain
             percentage_of_black_image = np.count_nonzero(img_mat[img_mat == 0])/len(img_mat)
-            if percentage_of_black_image < 0.1:
+            # check percentange of black image (low level of black in the image -> easier, and
+            # variance of pixels in the image -> lower variance-> more homogeneity -> easier)
+            if percentage_of_black_image < 0.01 and img_mat.var() < 200:
                 stage_0.append(el)
-            elif percentage_of_black_image < 0.5:
+            elif percentage_of_black_image < 0.5 and img_mat.var() < 800:
                 stage_1.append(el)
             else:
                 stage_2.append(el)
+
+    # TODO balance of the dataset based on number of vessels images.
+    # sample only the same amount of vessels image to put in the training
+
 
     for i, stage in enumerate([stage_0, stage_1, stage_2]):
         dir = curriculum_train_path + f"stage_{i}/"
