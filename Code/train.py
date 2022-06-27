@@ -129,7 +129,6 @@ def train_curriculum_dataset(curriculum_patches_path, train_patches_path, test_p
 
     X, y, file_names = get_X_y_file_names(train_patches_path)
     # Uncomment if you want to try under sampling
-    # X, y = random_under_sampling(X, y)
     X_train, y_train, file_names_train = shuffle_data(X, y, file_names)
     X_test, y_test, file_names_test = get_X_y_file_names(test_patches_path)
     # Compute the number of images and patches per image
@@ -140,18 +139,24 @@ def train_curriculum_dataset(curriculum_patches_path, train_patches_path, test_p
 
     model = get_vgg(patch_size)
     curriculum_folders = os.listdir(curriculum_patches_path)
+    # epochs = [10, 5, 3]
+    epochs = [20, 20, 20]
     for i in range(len(curriculum_folders)):
         curr_path = curriculum_patches_path + curriculum_folders[i]
         if ".ini" in curr_path:
             continue  # Ignore desktop.ini
+        else:
+            curr_epochs = epochs[i]
         # X, y at current stage
         X_curriculum, y_curriculum, _ = get_X_y_file_names(curr_path)
+        # Uncomment if you want to do over sampling
+        # X_curriculum, y_curriculum = random_over_sampling(X_curriculum, y_curriculum)
         X_curriculum, y_curriculum = shuffle_data(X_curriculum, y_curriculum)
         print('Training model...')
         history = model.fit(
             X_curriculum,
             y_curriculum,
-            epochs=20,
+            epochs=curr_epochs,
             batch_size=64,
             validation_split=0.2,
             # callbacks=[

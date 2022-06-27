@@ -5,15 +5,14 @@ the first implementation will use as metric the value of the vessels dimension a
 import re
 from pathlib import Path
 from utils.preprocessing import *
-import matplotlib.pyplot as plt
 import numpy as np
 import shutil
 
 
 def main():
-    patches_train_path = "../images/patched_images/train/img/"
-    patches_label_train_path = "../images/patched_images/train/labels/"
-    curriculum_train_path = "../images/curriculum/"
+    patches_train_path = "images/patched_images/train/img/"
+    patches_label_train_path = "images/patched_images/train/labels/"
+    curriculum_train_path = "images/curriculum/"
     input_images = [item for item in os.listdir(patches_train_path) if re.search("vessel", item)]
     label_images = [item for item in os.listdir(patches_label_train_path) if re.search("vessel", item)]
 

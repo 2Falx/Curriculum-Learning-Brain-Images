@@ -6,7 +6,7 @@ import imageio as io
 import matplotlib.pyplot as plt
 from utils.preprocessing import get_all_files
 from keras import backend as K
-
+import cv2
 
 def append_history(losses, val_losses, accuracies, val_accuracies, history):
     """
@@ -104,20 +104,24 @@ def random_over_sampling(X, y):
     :return: Numpy array, over sampled input data.
              Numpy array, over sampled input labels.
     """
-    y_vessels = y[y == 1]
-    y_non_vessels = y[y == 0]
-    difference = len(y_vessels) - len(y_non_vessels)
-    X_non_vessels = X[np.where(y == 0)[0]]
-    X_to_add = X_non_vessels
-    for i in range(int(np.floor(difference / len(X_non_vessels)) - 1)):
-        X_to_add = np.concatenate((X_to_add, X_non_vessels))
-    len_remaining_samples_to_add = difference - len(X_to_add)
-    index_remaining_samples_to_add = np.random.choice(X_non_vessels.shape[0], len_remaining_samples_to_add)
-    X_to_add = np.concatenate((X_to_add, X_non_vessels[index_remaining_samples_to_add]))
-    y_to_add = np.array([0] * len(X_to_add))
-    X_over_sampled = np.concatenate((X, X_to_add))
-    y_over_sampled = np.concatenate((y, y_to_add.reshape(len(y_to_add), 1)))
-    return X_over_sampled, y_over_sampled
+    X_vessels = X[np.where(y == 1)[0]]
+    X_vessels_augmented = np.empty((3 * X_vessels.shape[0], X_vessels.shape[1], X_vessels.shape[2]))
+    i = 0
+    for curr_patch in X_vessels:
+        curr_X_vessel_rotated = cv2.rotate(curr_patch, cv2.ROTATE_90_CLOCKWISE)
+        X_vessels_augmented[i] = curr_X_vessel_rotated
+        i += 1
+        curr_X_vessel_rotated = cv2.rotate(curr_patch, cv2.ROTATE_180)
+        X_vessels_augmented[i] = curr_X_vessel_rotated
+        i += 1
+        curr_X_vessel_rotated = cv2.rotate(curr_patch, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        X_vessels_augmented[i] = curr_X_vessel_rotated
+        i += 1
+
+    y_vessels_augmented = np.array([1] * len(X_vessels_augmented))
+    X = np.concatenate((X, X_vessels_augmented))
+    y = np.concatenate((y, y_vessels_augmented))
+    return X, y
 
 
 def normalize(X):
@@ -146,6 +150,7 @@ def shuffle_data(X, y, file_names=None):
              Numpy array, shuffled input file names if not curriculum learning.
     """
     indices = np.array(range(len(y)))
+    np.random.seed(42)
     np.random.shuffle(indices)
     if file_names:
         file_names = np.array(file_names)
