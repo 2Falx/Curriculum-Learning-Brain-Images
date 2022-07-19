@@ -176,6 +176,7 @@ def shuffle_and_split(X, y, file_names, X_test_final, train_size):
              Numpy array, normalized input external test data.
     """
     indices = np.array(range(len(y)))
+    np.random.seed(42)
     np.random.shuffle(indices)
     indices_train = np.random.choice(len(y), size=int(train_size*len(y)), replace=False)
     indices_test = np.setxor1d(indices, indices_train)

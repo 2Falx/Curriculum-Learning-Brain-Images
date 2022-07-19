@@ -95,4 +95,4 @@ def main(patch_size):
 
 
 if __name__ == "__main__":
-    main(patch_size=64)
+    main(patch_size=32)

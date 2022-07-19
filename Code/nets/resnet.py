@@ -1,5 +1,6 @@
 from keras.layers import Input, Conv2D, Activation, BatchNormalization, GlobalAveragePooling2D, Dense, Dropout
-from keras.layers.merge import add
+# from keras.layers.merge import add
+from keras.layers.merging import add
 from keras.activations import relu, sigmoid
 from keras.models import Model
 from keras import regularizers

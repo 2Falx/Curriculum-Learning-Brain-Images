@@ -4,10 +4,12 @@ This file contains the CNN which will classify image patches.
 from keras.models import Model
 from keras.layers import Input
 from keras.layers import Conv2D
-from keras.layers.merge import concatenate
+# from keras.layers.merge import concatenate
+from keras.layers.merging import concatenate
 from keras.layers import Dropout
 from keras.layers import Dense
-from tensorflow.keras.optimizers import SGD
+# from tensorflow.keras.optimizers import SGD
+from keras.optimizers import SGD
 from keras.layers import Flatten
 
 

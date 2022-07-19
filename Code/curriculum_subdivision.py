@@ -10,9 +10,9 @@ import shutil
 
 
 def main():
-    patches_train_path = "images/patched_images/train/img/"
-    patches_label_train_path = "images/patched_images/train/labels/"
-    curriculum_train_path = "images/curriculum/"
+    patches_train_path = "../images/patched_images/train/img/"
+    patches_label_train_path = "../images/patched_images/train/labels/"
+    curriculum_train_path = "../images/curriculum/"
     input_images = [item for item in os.listdir(patches_train_path) if re.search("vessel", item)]
     label_images = [item for item in os.listdir(patches_label_train_path) if re.search("vessel", item)]
 
@@ -29,29 +29,33 @@ def main():
         img_mat = np.load(patches_train_path + el)
         label_mat = np.load(patches_label_train_path + el)
         # mean_of_values.append(img_mat.mean()) # compute and store all the pixel-wise mean from the images
-        # var_of_values.append(img_mat.var()) # compute and store all the pixel-wise variances from the images
+        var_of_values.append(img_mat.var()) # compute and store all the pixel-wise variances from the images
+
         # If the patch contains a vessel
         if label_mat.max() != 0:
             mean_vessel = label_mat.mean()
             vessels_dimensions.append(mean_vessel)
             if mean_vessel > 0.05:
                 stage_0.append(el)
-            elif 0.05 >= mean_vessel > 0.01:
+            elif 0.05 >= mean_vessel > 0.015:
                 stage_1.append(el)
             else:
                 stage_2.append(el)
 
         else:
             # Black patch out of the brain
-            percentage_of_black_image = np.count_nonzero(img_mat[img_mat == 0])/len(img_mat)
+            percentage_of_black_image = 1 - np.count_nonzero(img_mat)/img_mat.size
             # check percentange of black image (low level of black in the image -> easier, and
             # variance of pixels in the image -> lower variance-> more homogeneity -> easier)
-            if percentage_of_black_image < 0.01 and img_mat.var() < 200:
+            # I CHANGED AGAIN VALUES W.R.T FINAL VERSION division 0.01, 0.5 | 200, 500, 1200
+            if percentage_of_black_image < 0.1 and img_mat.var() < 200:
                 stage_0.append(el)
-            elif percentage_of_black_image < 0.5 and img_mat.var() < 800:
+            elif percentage_of_black_image < 0.6 and img_mat.var() < 800:
                 stage_1.append(el)
             else:
                 stage_2.append(el)
+
+
 
     # TODO balance of the dataset based on number of vessels images.
     # sample only the same amount of vessels image to put in the training
