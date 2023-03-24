@@ -1,0 +1,15 @@
+create_patches.py
+
+1) Just 10 slices for each image are selected 
+   Before: from 60 to 110 with step 5, select these 10 slices
+   Now: from 0 to z_dim with step 5, than select the 10 central slices
+
+2) PROBLEM:
+   Keep last 2 slices images as test set, save train and test patches in the respective folders
+   Instead you should divide the training and test on the patient, not on the slice of the same patches_train_path
+
+
+models_training.py
+
+1) Killed message:
+   The process is being killed by the OOM killer (Out Of Memory Killer), which is a process of the operating system whose job it is to kill jobs that are taking up too much memory before they crash your machine.
