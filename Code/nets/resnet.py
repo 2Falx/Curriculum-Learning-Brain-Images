@@ -1,6 +1,6 @@
 from keras.layers import Input, Conv2D, Activation, BatchNormalization, GlobalAveragePooling2D, Dense, Dropout
 # from keras.layers.merge import add
-from keras.layers.merging import add
+from keras.layers import add
 from keras.activations import relu, sigmoid
 from keras.models import Model
 from keras import regularizers
@@ -62,9 +62,13 @@ def get_resnet(patch_size):
     # last softmax layer
     x = Dense(units=1, kernel_regularizer=regularizers.l2(0.01))(x)
     x = Activation(sigmoid)(x)
+    
     model = Model(inputs=input_tensor, outputs=x)
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    
     print('Tiny Resnet compiled.')
+    
     # summarize model
     model.summary()
+    
     return model

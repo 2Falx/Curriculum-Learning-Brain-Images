@@ -22,10 +22,13 @@ def train(patches_path, patches_label_path):
     """
     patches_list = get_all_files(patches_path)
     patches_labels_list = get_all_files(patches_label_path)
+    
     X_train, y_train = [], []
+    
     for brain_patch, brain_patch_label in zip(patches_list, patches_labels_list):
         X_train.append(np.load(brain_patch))
         y_train.append(np.load(brain_patch_label))
+    
     X_train = np.array(X_train)
     y_train = np.array(y_train)
 
@@ -61,6 +64,7 @@ def train(patches_path, patches_label_path):
     shear_range = 20
     width_shift_range = 0
     height_shift_range = 0
+    
     data_gen_args = dict(rotation_range=rotation_range,
                          horizontal_flip=horizontal_flip,
                          vertical_flip=vertical_flip,
@@ -68,6 +72,8 @@ def train(patches_path, patches_label_path):
                          width_shift_range=width_shift_range,
                          height_shift_range=height_shift_range,
                          fill_mode='constant')
+    
+    # Data augmentation
     X_datagen = ImageDataGenerator(**data_gen_args)
     y_datagen = ImageDataGenerator(**data_gen_args)
 
@@ -88,12 +94,15 @@ def train(patches_path, patches_label_path):
     
     # Training model
     start_train = time.time()
+    
     model.fit(train_generator,
               steps_per_epoch=factor_train_samples * len(X_train) // batch_size,
               epochs=num_epochs,
               verbose=2,
               shuffle=True)
+    
     duration_train = int(time.time() - start_train)
+    
     print('training took:', (duration_train // 3600) % 60, 'hours', (duration_train // 60) % 60,
           'minutes', duration_train % 60, 'seconds')
 
@@ -110,9 +119,12 @@ def predict_test_set(test_patches_path, model, mean_train, std_train):
     """
     # TODO: use true test patches labels
     patches_list = get_all_files(test_patches_path)
+    
     X_test = []
+    
     for brain_patch in patches_list:
         X_test.append(np.load(brain_patch))
+    
     X_test = np.array(X_test)
 
     # Add 4th dimension
@@ -126,6 +138,7 @@ def predict_test_set(test_patches_path, model, mean_train, std_train):
 
     file_names_test = get_all_files(test_patches_path)
     tot_images = compute_number_of_train_images(test_patches_path)
+    
     # TODO: automize it
     x_patches_per_image = 9 * 2
     y_patches_per_image = 12 * 2

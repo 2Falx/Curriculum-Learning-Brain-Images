@@ -56,20 +56,15 @@ def get_wnetseg(patch_size, num_channels, activation, final_activation, optimize
     # layers on each level: convolution2d -> dropout -> convolution2d -> max-pooling
 
     # level 0
-    conv_0_down_1 = conv_block(inputs, num_kernels[0], kernel_size, strides, padding, activation, dropout, data_format,
-                               bn)
+    conv_0_down_1 = conv_block(inputs, num_kernels[0], kernel_size, strides, padding, activation, dropout, data_format,bn)
     pool_0_1 = MaxPooling2D(pool_size=pool_size, data_format=data_format)(conv_0_down_1)
 
     # level 1
-    conv_1_down_1 = conv_block(pool_0_1, num_kernels[1], kernel_size, strides, padding, activation, dropout,
-                               data_format,
-                               bn)
+    conv_1_down_1 = conv_block(pool_0_1, num_kernels[1], kernel_size, strides, padding, activation, dropout,data_format,bn)
     pool_1_1 = MaxPooling2D(pool_size=pool_size, data_format=data_format)(conv_1_down_1)
 
     # level 2
-    conv_2_down_1 = conv_block(pool_1_1, num_kernels[2], kernel_size, strides, padding, activation, dropout,
-                               data_format,
-                               bn)
+    conv_2_down_1 = conv_block(pool_1_1, num_kernels[2], kernel_size, strides, padding, activation, dropout,data_format,bn)
     pool_2_1 = MaxPooling2D(pool_size=pool_size, data_format=data_format)(conv_2_down_1)
 
     # level 3
@@ -80,41 +75,29 @@ def get_wnetseg(patch_size, num_channels, activation, final_activation, optimize
 
     # level 2
     concat_2_1 = up_concat_block(conv_4_1, conv_2_down_1, pool_size, concat_axis, data_format)
-    conv_2_up_1 = conv_block(concat_2_1, num_kernels[2], kernel_size, strides, padding, activation, dropout,
-                             data_format,
-                             bn)
+    conv_2_up_1 = conv_block(concat_2_1, num_kernels[2], kernel_size, strides, padding, activation, dropout,data_format,bn)
     # level 1
     concat_1_1 = up_concat_block(conv_2_up_1, conv_1_down_1, pool_size, concat_axis, data_format)
-    conv_1_up_1 = conv_block(concat_1_1, num_kernels[1], kernel_size, strides, padding, activation, dropout,
-                             data_format,
-                             bn)
+    conv_1_up_1 = conv_block(concat_1_1, num_kernels[1], kernel_size, strides, padding, activation, dropout,data_format,bn)
 
     # level 0
     concat_0_1 = up_concat_block(conv_1_up_1, conv_0_down_1, pool_size, concat_axis, data_format)
-    conv_0_up_1 = conv_block(concat_0_1, num_kernels[0], kernel_size, strides, padding, activation, dropout,
-                             data_format,
-                             bn)
+    conv_0_up_1 = conv_block(concat_0_1, num_kernels[0], kernel_size, strides, padding, activation, dropout,data_format,bn)
     final_conv_1 = Convolution2D(1, 1, strides=strides, activation=final_activation, padding=padding,
                                  data_format=data_format)(conv_0_up_1)
 
     # The second U-net
     # DOWN-SAMPLING PART (left side of the second U-net)
     # level 0
-    conv_0_down_2 = conv_block(final_conv_1, num_kernels[0], kernel_size, strides, padding, activation, dropout,
-                               data_format,
-                               bn)
+    conv_0_down_2 = conv_block(final_conv_1, num_kernels[0], kernel_size, strides, padding, activation, dropout,data_format,bn)
     pool_0_2 = MaxPooling2D(pool_size=pool_size, data_format=data_format)(conv_0_down_2)
 
     # level 1
-    conv_1_down_2 = conv_block(pool_0_2, num_kernels[1], kernel_size, strides, padding, activation, dropout,
-                               data_format,
-                               bn)
+    conv_1_down_2 = conv_block(pool_0_2, num_kernels[1], kernel_size, strides, padding, activation, dropout,data_format,bn)
     pool_1_2 = MaxPooling2D(pool_size=pool_size, data_format=data_format)(conv_1_down_2)
 
     # level 2
-    conv_2_down_2 = conv_block(pool_1_2, num_kernels[2], kernel_size, strides, padding, activation, dropout,
-                               data_format,
-                               bn)
+    conv_2_down_2 = conv_block(pool_1_2, num_kernels[2], kernel_size, strides, padding, activation, dropout,data_format,bn)
     pool_2_2 = MaxPooling2D(pool_size=pool_size, data_format=data_format)(conv_2_down_2)
 
     # level 3
@@ -124,27 +107,20 @@ def get_wnetseg(patch_size, num_channels, activation, final_activation, optimize
 
     # level 2
     concat_2_2 = up_concat_block2(conv_4_2, conv_2_down_1, conv_2_down_2, pool_size, concat_axis, data_format)
-    conv_2_up_2 = conv_block(concat_2_2, num_kernels[2], kernel_size, strides, padding, activation, dropout,
-                             data_format,
-                             bn)
+    conv_2_up_2 = conv_block(concat_2_2, num_kernels[2], kernel_size, strides, padding, activation, dropout,data_format,bn)
     # level 1
     concat_1_2 = up_concat_block2(conv_2_up_2, conv_1_down_1, conv_1_down_2, pool_size, concat_axis, data_format)
-    conv_1_up_2 = conv_block(concat_1_2, num_kernels[1], kernel_size, strides, padding, activation, dropout,
-                             data_format,
-                             bn)
+    conv_1_up_2 = conv_block(concat_1_2, num_kernels[1], kernel_size, strides, padding, activation, dropout,data_format,bn)
 
     # level 0
     concat_0_2 = up_concat_block2(conv_1_up_2, conv_0_down_1, conv_0_down_2, pool_size, concat_axis, data_format)
-    conv_0_up_2 = conv_block(concat_0_2, num_kernels[0], kernel_size, strides, padding, activation, dropout,
-                             data_format,
-                             bn)
+    conv_0_up_2 = conv_block(concat_0_2, num_kernels[0], kernel_size, strides, padding, activation, dropout,data_format,bn)
     final_conv_2 = Convolution2D(1, 1, strides=strides, activation=final_activation, padding=padding,
                                  data_format=data_format)(conv_0_up_2)
 
     # configure the learning process via the compile function
     model = Model(inputs=inputs, outputs=final_conv_2)
-    model.compile(optimizer=optimizer(lr=learning_rate), loss=loss_function,
-                  metrics=metrics)
+    model.compile(optimizer=optimizer(lr=learning_rate), loss=loss_function,metrics=metrics)
     print('wnetseg compiled.')
 
     # print out model summary to console

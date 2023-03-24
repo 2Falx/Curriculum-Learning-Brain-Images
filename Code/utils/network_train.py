@@ -159,7 +159,7 @@ def shuffle_data(X, y, file_names=None):
 
 
 # used for active learning
-def shuffle_and_split(X, y, file_names, X_test_final, train_size):
+def shuffle_and_split(X, y, file_names, X_test_final, train_size,normalize=False):
     """
     Shuffle, split and normalize input data.
     :param X: Numpy array, input data.
@@ -175,25 +175,40 @@ def shuffle_and_split(X, y, file_names, X_test_final, train_size):
              Numpy array, normalized input test file names.
              Numpy array, normalized input external test data.
     """
+    # Find indices to split the data into train and test sets
     indices = np.array(range(len(y)))
     np.random.seed(42)
     np.random.shuffle(indices)
+    
     indices_train = np.random.choice(len(y), size=int(train_size*len(y)), replace=False)
     indices_test = np.setxor1d(indices, indices_train)
+    
+    # Select the training data
     X_train = X[indices_train]
     y_train = y[indices_train]
     file_names_train = np.array(file_names)[indices_train]
+    
+    #Select the test data (NOTE: Problem here)
+    
     X_test = X[indices_test]
     y_test = y[indices_test]
+
     file_names_test = np.array(file_names)[indices_test]
-    # train_mean = np.mean(X)  # mean for data centering
-    # train_std = np.std(X)  # std for data normalization
-    # X_train -= train_mean
-    # X_train /= train_std
-    # X_test -= train_mean
-    # X_test /= train_std
-    # X_test_final -= train_mean
-    # X_test_final /= train_std
+
+    # You can choose whether to normalize the input data or not
+    if normalize:
+        train_mean = np.mean(X)  # mean for data centering
+        train_std = np.std(X)  # std for data normalization
+        
+        X_train -= train_mean
+        X_train /= train_std
+        
+        X_test -= train_mean
+        X_test /= train_std
+        
+        X_test_final -= train_mean
+        X_test_final /= train_std
+    
     return X_train, X_test, y_train, y_test, file_names_train, file_names_test, X_test_final
 
 

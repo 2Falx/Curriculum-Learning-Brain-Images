@@ -30,13 +30,17 @@ def get_vgg(patch_size):
     layer = vgg_block(layer, 128, 2)
     # add vgg module
     layer = vgg_block1(layer, 256, 4)
+    
     final_conv = Flatten()(layer)
     final_conv = Dense(128, activation='relu', kernel_initializer='he_uniform')(final_conv)
     final_conv = Dense(1, activation='sigmoid')(final_conv)
+    
     # create model
     model = Model(inputs=visible, outputs=final_conv)
     model.compile(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=['accuracy'])
+    
     print('VGG-net compiled.')
     # summarize model
     model.summary()
+    
     return model
