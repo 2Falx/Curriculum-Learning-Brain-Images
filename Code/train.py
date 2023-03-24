@@ -18,7 +18,7 @@ import reconstructor_AL
 from scipy.stats import entropy
 import tensorflow as tf
 
-def train_whole_dataset(train_patches_path, test_patches_path, input_images_shape, method):
+def train_whole_dataset(train_patches_path, test_patches_path, input_images_shape, method,model_name,do_undesampling=False):
     """
     Train the classification model using the whole training dataset.
     :param train_patches_path: String, path of train patches.
@@ -29,10 +29,12 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
     """
     with tf.device("/cpu:0"):
         np.random.seed(42)
-        # X, y origin dataset and list of names of files (useful for reconstructing images at the end)
+        # X, y original dataset and list of names of files (useful for reconstructing images at the end)
         X, y, file_names = get_X_y_file_names(train_patches_path)
-        # Uncomment if you want to try under sampling
-        # X, y = random_under_sampling(X, y)
+        
+        if do_undesampling:
+            X, y = random_under_sampling(X, y)
+        
         X_train, y_train, file_names_train = shuffle_data(X, y, file_names)
         X_test, y_test, file_names_test = get_X_y_file_names(test_patches_path)
 
@@ -48,9 +50,14 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
         #       to the K-means or to Canny methods, you can skip the following CNN.
 
         # Choose the model
-        # model = get_pnetcls(patch_size)
-        # model = get_resnet(patch_size)
-        model = get_vgg(patch_size)
+        if model_name == 'pnet':
+            model = get_pnetcls(patch_size)
+        elif model_name == 'resnet':
+            model = get_resnet(patch_size)
+        elif model_name == 'vgg':
+            model = get_vgg(patch_size)
+        else:
+            raise ValueError(f'Unknown model name {model_name}, choose from pnet, resnet, vgg')
 
         print('Training model...')
         history = model.fit(
@@ -74,10 +81,11 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
         )
 
         y_pred = model.predict(X_test)
+        # Thresholed predictions using a threshold of 0.5
         y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
 
         # Save predictions in a .npy , check them after training with np.load
-        # np.save("predictions/pnetpred.npy", y_pred_rounded)
+        #np.save("predictions/pnetpred.npy", y_pred_rounded)
 
         accuracy_score_test = accuracy_score(y_test, y_pred_rounded)
         precision_score_test = precision_score(y_test, y_pred_rounded)
@@ -103,13 +111,15 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
                 np.save(path_lab + file_names_train[index].split("/")[-1], clustered_patch)
                 clustered_patches.append(clustered_patch)
             images_to_rec = np.array(clustered_patches)
-        else:
+        elif method == "canny":
             canny_patches = []
             for index, X_train_sample in enumerate(X_train):
                 canny_patch = canny(X_train_sample, y_train[index], viz=False)
                 np.save(path_lab + file_names_train[index].split("/")[-1], canny_patch)
                 canny_patches.append(canny_patch)
             images_to_rec = np.array(canny_patches)
+        else:
+            raise ValueError(f'Unknown unsupervised method {method}, choose from kmeans or canny')
 
         # Reconstruct segmented image by patches
         reconstructed_images = reconstruct(images_to_rec, file_names_train, tot_images,
@@ -117,7 +127,7 @@ def train_whole_dataset(train_patches_path, test_patches_path, input_images_shap
         return reconstructed_images
 
 
-def train_curriculum_dataset(curriculum_patches_path, train_patches_path, test_patches_path, input_images_shape, method):
+def train_curriculum_dataset(curriculum_patches_path, train_patches_path, test_patches_path, input_images_shape, method,do_undesampling=False,do_oversampling=False):
     """
     Train the classification model using curriculum learning.
     :param curriculum_patches_path: String, path of curriculum patches
@@ -130,7 +140,10 @@ def train_curriculum_dataset(curriculum_patches_path, train_patches_path, test_p
     np.random.seed(42)
 
     X, y, file_names = get_X_y_file_names(train_patches_path)
-    # Uncomment if you want to try under sampling
+    
+    if do_undesampling:
+        X, y = random_under_sampling(X, y)
+        
     X_train, y_train, file_names_train = shuffle_data(X, y, file_names)
     X_test, y_test, file_names_test = get_X_y_file_names(test_patches_path)
     # Compute the number of images and patches per image
@@ -143,18 +156,23 @@ def train_curriculum_dataset(curriculum_patches_path, train_patches_path, test_p
     curriculum_folders = os.listdir(curriculum_patches_path)
     # epochs = [10, 5, 3]
     epochs = [20, 20, 30]
+    
     for i in range(len(curriculum_folders)):
         curr_path = curriculum_patches_path + curriculum_folders[len(curriculum_folders) - i - 1]
+        
         if ".ini" in curr_path:
             continue  # Ignore desktop.ini
         else:
             curr_epochs = epochs[i]
         # X, y at current stage
         X_curriculum, y_curriculum, _ = get_X_y_file_names(curr_path)
-        # Uncomment if you want to do over sampling
-        # X_curriculum, y_curriculum = random_over_sampling(X_curriculum, y_curriculum)
+        
+        if do_oversampling:
+            X_curriculum, y_curriculum = random_over_sampling(X_curriculum, y_curriculum)
+            
         X_curriculum, y_curriculum = shuffle_data(X_curriculum, y_curriculum)
         print('Training model...')
+        
         with tf.device("/cpu:0"):
             history = model.fit(
                 X_curriculum,
@@ -177,6 +195,8 @@ def train_curriculum_dataset(curriculum_patches_path, train_patches_path, test_p
         )
         with tf.device("/cpu:0"):
             y_pred = model.predict(X_test)
+        
+        # Threshold the predictions using a threshold of 0.5    
         y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
 
         accuracy_score_test = accuracy_score(y_test, y_pred_rounded)
@@ -203,13 +223,15 @@ def train_curriculum_dataset(curriculum_patches_path, train_patches_path, test_p
             np.save(path_lab + file_names_train[index].split("/")[-1], clustered_patch)
             clustered_patches.append(clustered_patch)
         images_to_rec = np.array(clustered_patches)
-    else:
+    elif method == "canny":
         canny_patches = []
         for index, X_train_sample in enumerate(X_train):
             canny_patch = canny(X_train_sample, y_train[index], viz=False)
             np.save(path_lab + file_names_train[index].split("/")[-1], canny_patch)
             canny_patches.append(canny_patch)
         images_to_rec = np.array(canny_patches)
+    else:
+        raise ValueError(f"Method not recognized :{method}, choose either kmeans or canny")
 
     # Reconstruct segmented image by patches
     reconstructed_images = reconstruct(images_to_rec, file_names_train, tot_images,
@@ -217,42 +239,55 @@ def train_curriculum_dataset(curriculum_patches_path, train_patches_path, test_p
     return reconstructed_images
 
 
-def train_active_learning(train_patches_path, test_patches_path, input_images_shape, num_iterations, metrics, method):
+def train_active_learning(train_patches_path, test_patches_path, input_images_shape, num_iterations, uncertainty_metric, method,model_name='vgg', do_undesampling=False,load_best_model = False):
     np.random.seed(42)
+    print("Loading training data...")
     X, y, file_names = get_X_y_file_names(train_patches_path)
+    print("Shuffling training data...")
     X, y, file_names = shuffle_data(X, y, file_names)
-    # X, y = random_under_sampling(X, y)
-    # We start with a 15% of the samples
+    if do_undesampling:
+        print("Undesampling...")
+        X, y = random_under_sampling(X, y)
+    
+    print("Loading test data...")
     X_test_final, y_test_final, _ = get_X_y_file_names(test_patches_path)
-
     # Compute the number of patches per image
+    
     patch_size = X[0].shape[0]
     x_patches_per_image = int(input_images_shape[0] / patch_size)
     y_patches_per_image = int(input_images_shape[1] / patch_size)
     tot_images = compute_number_of_train_images(train_patches_path)
 
-    # # Make images appear as 3-channels images to use architecture like VGG, etc.
-    # X = np.repeat(X[..., np.newaxis], 3, -1)
-    # X_test_final = np.repeat(X_test_final[..., np.newaxis], 3, -1)
+    if model_name == 'vgg':
+        # Make images appear as 3-channels images to use architecture like VGG, etc.
+        X = np.repeat(X[..., np.newaxis], 3, -1)
+        X_test_final = np.repeat(X_test_final[..., np.newaxis], 3, -1)
 
+    # We start with a 15% of the samples
+    print("Selecting 15% of training data for the first training...")
     X_train, X_test, y_train, y_test, \
-        file_names_train, file_names_test, X_test_final = shuffle_and_split(X, y, file_names, X_test_final,
-                                                                            train_size=0.15)
+        file_names_train, file_names_test, X_test_final = shuffle_and_split(X, y, file_names, X_test_final, train_size=0.15) #TODO: Normalize?
     # Creating lists for storing metrics
     losses, val_losses, accuracies, val_accuracies = [], [], [], []
 
     # Choose the model
-    # model = get_pnetcls(patch_size)
-    # model = get_resnet(patch_size)
-    model = get_vgg(patch_size)
-
-    print("Starting to train... ")
+    print("Instancing model...")
+    if model_name == 'pnet':
+        model = get_pnetcls(patch_size)
+    elif model_name == 'resnet':
+        model = get_resnet(patch_size)
+    elif model_name == 'vgg':
+        model = get_vgg(patch_size)
+    else:
+        raise ValueError(f'Unknown model {model_name}')
+    
+    print("Starting training [Iteration 0]... ")
     with tf.device("/cpu:0"):
         history = model.fit(
             X_train,
             y_train,
             epochs=20,
-            batch_size=64,
+            batch_size=4,
             validation_split=0.2,
             # callbacks=[keras.callbacks.ModelCheckpoint(
             #     "ALModelCheckpoint.h5", verbose=1, save_best_only=True
@@ -261,12 +296,15 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
         )
 
     losses, val_losses, accuracies, val_accuracies = append_history(
-        losses, val_losses, accuracies, val_accuracies, history
-    )
+        losses, val_losses, accuracies, val_accuracies, history)
 
     #  Active Learning iterations
+    print("Starting to train with Active Learning iteration...")
     for iteration in range(num_iterations):
+        print(f"Starting iteration {iteration + 1} of {num_iterations}...")
+        
         with tf.device("/cpu:0"):
+            print("Model Prediction...")
             y_pred = model.predict(X_test_final)
         y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
 
@@ -284,16 +322,28 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
         # Uncertain values count fixed
         count_uncertain_values = 50
         most_uncertain_indices = []
+        
+        print(f"Selecting {count_uncertain_values} uncertain values by using {uncertainty_metric} as uncertainty_metric to be added to the training set for the next iteration...")
         with tf.device("/cpu:0"):
-            if metrics == "least_confidence":
+            if uncertainty_metric == "least_confidence":
+                # Ascending sorted array wrt the absolute differences between the predicted values and 0.5.
                 most_uncertain_indices = np.argsort(np.abs(model.predict(X_test) - 0.5), axis=0)
                 most_uncertain_indices = most_uncertain_indices[:count_uncertain_values].flatten()
 
-            elif metrics == "entropy":
+            elif uncertainty_metric == "entropy":
+                # Entropy of the predictions on the test dataset. (transpose function = column-wise entropy)
                 entropy_y = np.transpose(entropy(np.transpose(model.predict(X_test))))
-                most_uncertain_indices = np.argpartition(-entropy_y, count_uncertain_values - 1, axis=0)[
-                                         :count_uncertain_values]
-
+                
+                # Finds indices of the most uncertain predictions in the test dataset:
+                # argpartition returns the indices that would partition the array in descending order of the values along the specified axis.
+                # axis=0 to partition the array column-wise.
+                # -entropy_y to return the highest entropy values (the most uncertain predictions)
+                most_uncertain_indices = np.argpartition(-entropy_y, count_uncertain_values - 1, axis=0)[:count_uncertain_values]
+            
+            else:
+                print(f"Unknown uncertainty_metric {uncertainty_metric}: choose either least_confidence or entropy")
+                raise ValueError(f"Unsupported uncertainty_metric: {uncertainty_metric}")
+            
         print(f"X_train.shape: {X_train.shape}")
         print(f"X_test[most_uncertain_indices, :, :, :].shape: {X_test[most_uncertain_indices, :, :].shape}")
 
@@ -301,19 +351,22 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
         # take highlighted elements to show uncertain patches
         X_test_highlighted = X_test.copy()  # we will highlight only patches most uncertain
         X_train_highlighted = X_train.copy()
+        
+        # Make images appear as 3-channels images to use architecture like VGG, etc.
         X_train_highlighted = np.repeat(X_train_highlighted[..., np.newaxis], 3, -1)
         X_test_highlighted = np.repeat(X_test_highlighted[..., np.newaxis], 3, -1)
-        for i in range(len(X_train_highlighted)):  # green squares for patches of train
-            X_train_highlighted[i, 0, :, 1] = 255
-            X_train_highlighted[i, len(X_train_highlighted[i]) - 1, :, 1] = 255
-            X_train_highlighted[i, :, 0, 1] = 255
-            X_train_highlighted[i, :, len(X_train_highlighted[i]) - 1, 1] = 255
+        
+        for idx in range(len(X_train_highlighted)):  # green squares for patches of train
+            X_train_highlighted[idx, 0, :, 1] = 255
+            X_train_highlighted[idx, len(X_train_highlighted[idx]) - 1, :, 1] = 255
+            X_train_highlighted[idx, :, 0, 1] = 255
+            X_train_highlighted[idx, :, len(X_train_highlighted[idx]) - 1, 1] = 255
 
-        for i in most_uncertain_indices:
-            X_test_highlighted[i, 0, :, 0] = 255  # red squares for AL patches
-            X_test_highlighted[i, len(X_test_highlighted[i]) - 1, :, 0] = 255
-            X_test_highlighted[i, :, 0, 0] = 255
-            X_test_highlighted[i, :, len(X_test_highlighted[i]) - 1, 0] = 255
+        for idx in most_uncertain_indices:
+            X_test_highlighted[idx, 0, :, 0] = 255  # red squares for AL patches
+            X_test_highlighted[idx, len(X_test_highlighted[idx]) - 1, :, 0] = 255
+            X_test_highlighted[idx, :, 0, 0] = 255
+            X_test_highlighted[idx, :, len(X_test_highlighted[idx]) - 1, 0] = 255
 
         X_check = np.concatenate((X_train_highlighted, X_test_highlighted))
         file_names_check = np.concatenate((file_names_train, file_names_test))
@@ -354,9 +407,14 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
         )
 
     # End of AL iterations
-
-    # Loading the best model from the training loop
-    # model = keras.models.load_model("ALModelCheckpoint.h5")
+    print(f"Training complete!")
+  
+    if load_best_model:
+        # Loading the best model from the training loop
+        model = keras.models.load_model("ALModelCheckpoint.h5")
+    
+    #else: load the last model from the training loop
+    
     with tf.device("/cpu:0"):
         y_pred = model.predict(X_test_final)
     y_pred_rounded = np.where(np.greater(y_pred, 0.5), 1, 0)
@@ -375,30 +433,36 @@ def train_active_learning(train_patches_path, test_patches_path, input_images_sh
     # Now put together train and test and use pass them to kmeans/canny for segmentation
     with tf.device("/cpu:0"):
         X = np.concatenate((X_train, X_test))
-        y = np.concatenate((y_train.squeeze(), model.predict(
-            X_test).squeeze()))  # we generate predictions on the whole dataset -> we will use them in kmeans/canny
+        # Generate predictions on the whole dataset
+        y = np.concatenate((y_train.squeeze(), model.predict(X_test).squeeze()))  
         file_names = np.concatenate((file_names_train, file_names_test))
 
-    # # Path to save labels generated by an unsupervised algorithm
-    # path_lab = "images/patched_images/train/predlabels/"
+    # Path to save labels generated by an unsupervised algorithm
+    path_lab = "images/patched_images/train/predlabels/"
+    
     # Choose either kmeans or canny method to get a first approximation of pixel-level labels.
     if method == "kmeans":
         clustered_patches = []
         for index, X_train_sample in enumerate(X_train):
             clustered_patch = kmeans(X_train_sample, y_train[index], viz=True)
-            # np.save(path_lab + file_names_train[index].split("/")[-1], clustered_patch)
+            np.save(path_lab + file_names_train[index].split("/")[-1], clustered_patch)
             clustered_patches.append(clustered_patch)
         images_to_rec = np.array(clustered_patches)
-    else:
+    
+    elif method == "canny":
         canny_patches = []
         for index, X_train_sample in enumerate(X_train):
             canny_patch = canny(X_train_sample, y_train[index], viz=False)
-            # np.save(path_lab + file_names_train[index].split("/")[-1], canny_patch)
+            np.save(path_lab + file_names_train[index].split("/")[-1], canny_patch)
             canny_patches.append(canny_patch)
         images_to_rec = np.array(canny_patches)
-
+    
+    else:
+        raise ValueError(f"Unknown method: {method}, choose either kmeans or canny") 
+        
     # Reconstruct segmented image by patches
     reconstructed_images = reconstruct(images_to_rec, file_names_train, tot_images,
                                        x_patches_per_image, y_patches_per_image)
+    
     return reconstructed_images
 
