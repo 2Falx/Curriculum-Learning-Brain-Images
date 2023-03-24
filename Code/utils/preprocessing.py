@@ -5,6 +5,8 @@ import os
 import numpy as np
 import imageio as io
 import nibabel as nib
+import matplotlib.pyplot as plt
+from skimage.transform import resize
 
 
 def load_nifti_mat_from_file(path_orig):
@@ -17,6 +19,52 @@ def load_nifti_mat_from_file(path_orig):
     print(' - nifti loaded from:', path_orig)
     return nifti_orig.get_fdata()  # transform the images into np.ndarrays - float64
 
+def reshape_with_patch_size(img_data, patch_size):
+    """
+    Reshapes the image data so that its new dimension is a multiple of the given patch size.
+    :param img_data: Numpy array, image data to be reshaped.
+    :param patch_size: Integer, patch size.
+    :return: Numpy array, reshaped image data.
+    """
+    old_shape = img_data.shape
+    old_x_size = old_shape[0]
+    old_y_size = old_shape[1]
+    old_z_size = old_shape[2]
+    
+    new_x_size = (old_x_size//patch_size) * patch_size
+    new_y_size = (old_y_size//patch_size) * patch_size
+    new_z_size = old_z_size
+    
+    new_shape = (new_x_size, new_y_size, new_z_size)
+    resized_img_data = resize(img_data, new_shape, 3, cval=0, mode='edge', anti_aliasing=False) if new_shape != img_data.shape else img_data 
+    return resized_img_data
+
+def select_central_elements(slice_list, n):
+    list_length = len(slice_list)
+    
+    if n >= list_length:
+        return slice_list
+    
+    half_n = int(n/2)
+    
+    if list_length % 2 == 0:
+        # list has even number of elements
+        start_index = int(list_length / 2) - half_n
+        end_index = start_index + n
+    else:
+        # list has odd number of elements
+        start_index = int(list_length / 2) - half_n
+        end_index = start_index + n
+        
+    return slice_list[start_index:end_index]
+
+def plot_nifty(img_data):
+    """
+    Plots the image data.
+    :param img_data: Numpy array, image data to be plotted.
+    """
+    plt.imshow(img_data[:,:,img_data.shape[2]//2], cmap='gray')
+    plt.show()
 
 def create_and_save_nifti(mat, path_target):
     """
