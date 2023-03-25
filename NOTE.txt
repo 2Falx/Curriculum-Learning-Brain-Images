@@ -8,6 +8,7 @@ create_patches.py
    Keep last 2 slices images as test set, save train and test patches in the respective folders
    Instead you should divide the training and test on the patient, not on the slice of the same patches_train_path
 
+3) Just the label of the first patient was used in Federico's code (???)
 
 models_training.py
 
