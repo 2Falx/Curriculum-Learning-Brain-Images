@@ -4,6 +4,7 @@ This file applies a grid on the image, saving patches and the image with the gri
 import re
 from pathlib import Path
 from utils.preprocessing import *
+from tqdm import tqdm
 
 
 def main(patch_size,save_nifti=False):
@@ -19,8 +20,8 @@ def main(patch_size,save_nifti=False):
     grid_path = "images/images_with_grid/"
     
     
-    input_images = [item for item in os.listdir(masked_images_path) if re.search("_img", item)]
-    label_images = [item for item in os.listdir(masked_images_path) if re.search("_label", item)]
+    input_images = [item for item in sorted(os.listdir(masked_images_path)) if re.search("_img", item)]
+    label_images = [item for item in sorted(os.listdir(masked_images_path)) if re.search("_label", item)]
 
     # Create folders if they don't exist already
     Path(patches_train_path).mkdir(parents=True, exist_ok=True)
@@ -31,7 +32,9 @@ def main(patch_size,save_nifti=False):
     Path(patches_test_path[:-4] + "predlabels/").mkdir(parents=True, exist_ok=True)
     Path(grid_path).mkdir(parents=True, exist_ok=True)
 
-    for i, img_name in enumerate(input_images):
+    for i, img_name in enumerate(tqdm(input_images)):
+        #Load image
+        label_name = label_images[i]
         img_mat = load_nifti_mat_from_file(masked_images_path + img_name)
         #Reshape such that the img can be divided into the passed number of patches
         img_mat = reshape_with_patch_size(img_mat, patch_size)
@@ -39,11 +42,17 @@ def main(patch_size,save_nifti=False):
         # Squashes input between 0.0 and 1.0
         img_mat_with_grid -= img_mat.min()
         img_mat_with_grid /= img_mat.max()
+        
+        #Load and reshape label
+        label_mat = load_nifti_mat_from_file(masked_images_path + label_name)
+        label_mat = reshape_with_patch_size(label_mat, patch_size)
+        
+        # Check that the image and label have the same dimensions and same id
+        assert img_mat_with_grid.shape == label_mat.shape
+        assert img_name.split("_")[0]==label_name.split("_")[0]
+        
         # Compute image dimensions once since all images have the same dimensions and perform a check on the patch size
         if i == 0:
-            label_mat = load_nifti_mat_from_file(masked_images_path + label_images[i])
-            label_mat = reshape_with_patch_size(label_mat, patch_size)
-            assert img_mat_with_grid.shape == label_mat.shape
             x_dim, y_dim, z_dim = img_mat.shape
             # Check that patches size fits in the image
             assert x_dim % patch_size == 0 and y_dim % patch_size == 0, "Image shape is not multiple of the patch size"
@@ -61,9 +70,11 @@ def main(patch_size,save_nifti=False):
         # TODO: change it when the train will be done with all the images (Just put num_selected_slices = z_dim and step=1)
         # NOTE: BEFORE - 10 slices from 60 to 110 with step 5
         # NOTE: NOW - 10 slices from 30 to 80 with step 5 (Central slices of the images)
+        
         num_selected_slices = 10
         selected_slices = select_central_elements(np.arange(0, z_dim, step=5), num_selected_slices)
         assert(len(selected_slices==num_selected_slices))
+        
         for current_slice in range(z_dim):
             if current_slice not in selected_slices:
                 continue
@@ -99,17 +110,18 @@ def main(patch_size,save_nifti=False):
                         # NOTE: save as npy files since NIfTI images' pixels have also values greater than 255
                         if current_slice in selected_slices[-2:]:
                             create_and_save_image_as_ndarray(current_patch, patches_test_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]','', img_name)}")
-                            create_and_save_image_as_ndarray(current_patch_label, patches_label_test_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]', '', img_name)}")
+                            create_and_save_image_as_ndarray(current_patch_label, patches_label_test_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]', '', label_name)}")
                         else:
                             create_and_save_image_as_ndarray(current_patch, patches_train_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]','', img_name)}")
-                            create_and_save_image_as_ndarray(current_patch_label, patches_label_train_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]', '', img_name)}")
-
+                            create_and_save_image_as_ndarray(current_patch_label, patches_label_train_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]', '', label_name)}")
+                        # Name of patch:  vesse/no_vessel + num x patches + num y patches + slice number + patient_number
+        
         # Save the NIfTI image and label with grid
         if save_nifti:
             create_and_save_nifti(img_with_grid, grid_path + img_name)
-            create_and_save_nifti(label_with_grid, grid_path + img_name[:-7] + "label.nii")
+            create_and_save_nifti(label_with_grid, grid_path + label_name)
         print(f" - Patches generated\n")
-    print("DONE: All patches generated")
+    print("DONE")
 
 if __name__ == "__main__":
-    main(patch_size=32)
+    main(patch_size=64)
