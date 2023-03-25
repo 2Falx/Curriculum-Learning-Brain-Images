@@ -74,7 +74,7 @@ def create_and_save_nifti(mat, path_target):
     """
     new_nifti = nib.Nifti1Image(mat, np.eye(4))  # create new nifti from matrix
     nib.save(new_nifti, path_target)  # save nifti to target dir
-    print('New nifti saved to:', path_target)
+    print(' - New nifti saved to:', path_target)
 
 
 def apply_mask(image, mask):

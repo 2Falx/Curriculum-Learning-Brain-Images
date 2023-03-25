@@ -14,7 +14,7 @@ def main():
     test_patches_labels_path = "images/patched_images/test/labels/"
     input_images_shape = (576, 768, 136)  # NIfTI images
     
-    pipeline_name = "active"  # "curriculum_learning" or "active_learning"
+    pipeline_name = "curriculum"  # "curriculum_learning" or "active_learning"
     model_name = "vgg"
     do_segmentation = True # True or False
     predict_segmentation_bool = False # True or False
@@ -39,9 +39,11 @@ def main():
         labels = train.train_whole_dataset(train_patches_path, test_patches_path, input_images_shape, method="kmeans",model_name=model_name)
         
     if do_segmentation:
+        print("Starting segmentation training...")
         model, mean_train, std_train = train_wnetseg.train(train_patches_path, train_patches_labels_path)
         # TODO: return the model from wnetseg and test it on test images (possibly take them full shape and create patches on the flight)
         if predict_segmentation:
+            print("Segmentation predictions..")
             train_wnetseg.predict_test_set(test_patches_path, model, mean_train, std_train)
     print("End")
 
