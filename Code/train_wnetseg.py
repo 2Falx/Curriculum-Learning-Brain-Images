@@ -52,6 +52,7 @@ def train(patches_path, patches_label_path):
     loss = dice_coef_loss
     metrics = [dice_coef, 'accuracy']
 
+    print("Loading model...")
     model = get_wnetseg(patch_size, num_channels, activation, final_activation,
                         optimizer, lr, dropout, loss, metrics)
 
@@ -95,6 +96,7 @@ def train(patches_path, patches_label_path):
     # Training model
     start_train = time.time()
     
+    print("Training model...")
     model.fit(train_generator,
               steps_per_epoch=factor_train_samples * len(X_train) // batch_size,
               epochs=num_epochs,
@@ -103,8 +105,10 @@ def train(patches_path, patches_label_path):
     
     duration_train = int(time.time() - start_train)
     
-    print('training took:', (duration_train // 3600) % 60, 'hours', (duration_train // 60) % 60,
-          'minutes', duration_train % 60, 'seconds')
+    print('training took:',
+          (duration_train // 3600) % 60, 'hours',
+          (duration_train // 60) % 60, 'minutes',
+          (duration_train % 60), 'seconds')
 
     return model, mean_train, std_train
 
@@ -134,6 +138,7 @@ def predict_test_set(test_patches_path, model, mean_train, std_train):
     X_test -= mean_train
     X_test /= std_train
 
+    print("Get predictions...")
     y_pred = model.predict(X_test).squeeze()
 
     file_names_test = get_all_files(test_patches_path)
@@ -144,8 +149,11 @@ def predict_test_set(test_patches_path, model, mean_train, std_train):
     y_patches_per_image = 12 * 2
 
     # Reconstruct full images by patches segmentation predictions
+    print("Reconstructing full images from patches segmentation predictions...")
     reconstructed_images = reconstruct(y_pred, file_names_test, tot_images,
                                        x_patches_per_image, y_patches_per_image, test_flag=True)
 
+    print("Saving reconstructed images...")
+    
     Path("predictions/").mkdir(parents=True, exist_ok=True)
     np.save("predictions/test_predictions", reconstructed_images)

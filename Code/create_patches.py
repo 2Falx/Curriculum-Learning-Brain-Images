@@ -19,7 +19,7 @@ def main(patch_size,save_nifti=False):
     patches_label_test_path = "images/patched_images/test/labels/"
     grid_path = "images/images_with_grid/"
     
-    
+    # Create list of all the images in the labels file (sorted in order to match the patients name)
     input_images = [item for item in sorted(os.listdir(masked_images_path)) if re.search("_img", item)]
     label_images = [item for item in sorted(os.listdir(masked_images_path)) if re.search("_label", item)]
 
@@ -36,9 +36,11 @@ def main(patch_size,save_nifti=False):
         #Load image
         label_name = label_images[i]
         img_mat = load_nifti_mat_from_file(masked_images_path + img_name)
-        #Reshape such that the img can be divided into the passed number of patches
+        
+        #Reshape such that the img can be divided into the passed number of patches (!!!)
         img_mat = reshape_with_patch_size(img_mat, patch_size)
         img_mat_with_grid = img_mat.copy()
+        
         # Squashes input between 0.0 and 1.0
         img_mat_with_grid -= img_mat.min()
         img_mat_with_grid /= img_mat.max()
@@ -64,14 +66,16 @@ def main(patch_size,save_nifti=False):
             num_of_y_patches = int((y_max - y_min)/patch_size) + 1
         
         print(f" - img_shape = {img_mat.shape}, patch_size = {patch_size}, num_of_x_patches = {num_of_x_patches}, num_of_y_patches = {num_of_y_patches},")
+        
         img_with_grid = img_mat.copy()  # this will contain the image with the grid placed on it, NIfTI format
         label_with_grid = label_mat.copy()  # this will contain the image with the grid placed on it, NIfTI format
 
         # TODO: change it when the train will be done with all the images (Just put num_selected_slices = z_dim and step=1)
-        # NOTE: BEFORE - 10 slices from 60 to 110 with step 5
-        # NOTE: NOW - 10 slices from 30 to 80 with step 5 (Central slices of the images)
+        # NOTE: { BEFORE - 10 slices from 60 to 110 with step 5 (!!!)
+        #         NOW - 10 slices from 30 to 80 with step 5 (Central slices of the images) }
         
-        num_selected_slices = 10
+        num_selected_slices = 10 # Choose the number of selected slices
+        
         selected_slices = select_central_elements(np.arange(0, z_dim, step=5), num_selected_slices)
         assert(len(selected_slices==num_selected_slices))
         
@@ -85,6 +89,7 @@ def main(patch_size,save_nifti=False):
                     patch_end_x = x_min + patch_size * (m + 1) - 1
                     patch_start_y = y_min + patch_size * n
                     patch_end_y = y_min + patch_size * (n + 1) - 1
+                    
                     # Apply the grid on the NIfTI image and its NIfTI label
                     # TODO: change it adding "i" dimension when the train will be done with all the images
                     for grid in [img_with_grid, label_with_grid]:
@@ -92,6 +97,7 @@ def main(patch_size,save_nifti=False):
                         grid[patch_start_x: patch_end_x, patch_end_y] = 1
                         grid[patch_start_x, patch_start_y: patch_end_y] = 1
                         grid[patch_end_x, patch_start_y: patch_end_y] = 1
+                    
                     # Get the patch to be saved and its pixel-level label
                     current_patch = img_mat[patch_start_x: patch_end_x + 1, patch_start_y:patch_end_y + 1, current_slice]
                     current_patch_label = label_mat[patch_start_x: patch_end_x + 1, patch_start_y:patch_end_y + 1, current_slice].astype(np.uint8)
@@ -105,9 +111,11 @@ def main(patch_size,save_nifti=False):
 
                     # Remove patches which are totally black
                     if np.max(current_patch) != 0:
-                        # TODO: change it when the train will be done with all the images
+                        # TODO: change it when the train will be done with all the images (Train/Test split should be done at the patient level)
+                        
                         # NOTE: Keep last 2 slices images as test set, save train and test patches in the respective folders
                         # NOTE: save as npy files since NIfTI images' pixels have also values greater than 255
+                        
                         if current_slice in selected_slices[-2:]:
                             create_and_save_image_as_ndarray(current_patch, patches_test_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]','', img_name)}")
                             create_and_save_image_as_ndarray(current_patch_label, patches_label_test_path + f"{label}_{m}_{n}_{current_slice}_{re.sub('[^0-9]', '', label_name)}")
@@ -124,4 +132,8 @@ def main(patch_size,save_nifti=False):
     print("DONE")
 
 if __name__ == "__main__":
-    main(patch_size=64)
+    
+    # Choose the patch size
+    patch_size = 64
+    
+    main(patch_size=patch_size)

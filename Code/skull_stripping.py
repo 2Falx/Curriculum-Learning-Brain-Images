@@ -20,6 +20,7 @@ def main(original_data_dir, target_dir):
     # Get images, masks and vessel labels lists
     unfiltered_file_list = get_all_files(original_data_dir)
     
+    # Get the list of images, brain masks and vessel-labels
     input_list = [item for item in unfiltered_file_list if re.search('_img|_ToF', item)]
     mask_list = [item for item in unfiltered_file_list if re.search('_mask', item)]
     label_list = [item for item in unfiltered_file_list if re.search('_label|_vessel', item)]
@@ -31,12 +32,16 @@ def main(original_data_dir, target_dir):
         
         mask_name = mask_list[i]
         label_name = label_list[i]
+        
         #Check if img, brain mask and vessel label belong to the same patient
         assert img_name.split('_')[0] == mask_name.split('_')[0] == label_name.split('_')[0]
+        
         #Load brain image
         img_mat = load_nifti_mat_from_file(img_name)
+        
         #ULoad and use the brain mask to remove the skull
         mask_mat = load_nifti_mat_from_file(mask_list[i])
+        
         #Load the vessel label
         label_mat = load_nifti_mat_from_file(label_list[i])
         
@@ -52,6 +57,7 @@ def main(original_data_dir, target_dir):
         # save to new file as masked version of original data -> skull stripped brain and vessel labels
         create_and_save_nifti(img_mat, target_dir + img_name.split('/')[-1].split('_')[0] + '_img.nii')
         create_and_save_nifti(label_mat, target_dir + label_name.split('/')[-1].split('_')[0] + '_label.nii')
+        
         print()
         
     print('DONE')
